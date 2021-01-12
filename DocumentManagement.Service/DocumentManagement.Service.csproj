@@ -9,6 +9,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DocumentManagement.Dal\DocumentManagement.Dal.csproj" />
+    <ProjectReference Include="..\DocumentManagement.Entities\DocumentManagement.Entities.csproj" />
     <ProjectReference Include="..\DocumentManagement.Models\DocumentManagement.Models.csproj" />
   </ItemGroup>
 

@@ -1,8 +1,5 @@
 ﻿using DocumentManagement.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DocumentManagement.Dal
 {
@@ -13,6 +10,8 @@ namespace DocumentManagement.Dal
 
         }
 
-        public DbSet<DocumentRecordEntity> Document { get; set; }
+        public DbSet<DocumentRecordEntity> DocumentRecord { get; set; }
+        public DbSet<DocumentEntity> Document { get; set; }
+
     }
 }

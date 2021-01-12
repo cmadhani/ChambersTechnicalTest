@@ -6,6 +6,7 @@ namespace DocumentManagement.Dal
 {
     public interface IDocumentRepository : IDisposable
     {
-        Task<Guid> CreateDocumentAsync(DocumentRecordEntity document);
+        Task<Guid> CreateDocumentRecordAsync(DocumentRecordEntity document);
+        Task<Guid> CreateDocumentAsync(DocumentEntity document);
     }
 }

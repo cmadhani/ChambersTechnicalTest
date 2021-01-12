@@ -1,8 +1,10 @@
+using DocumentManagement.Dal;
 using DocumentManagement.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -38,7 +40,11 @@ namespace DocumentManagementSolution
                 AddXmlComments(setupAction);
             });
 
+            //Use In Memory for the purpose of Demo, otherwise we should use the other Db context onto a persistent DB (SQL or otherwise)
+            services.AddDbContext<DocumentDbContext>(opt => opt.UseInMemoryDatabase("DocumentDbContext"));
+
             services.AddScoped<IDocumentService, DocumentService>();
+            services.AddScoped<IDocumentRepository, DocumentRepository>();
             services.AddScoped<IModelStateErrorHandler, ModelStateErrorHandler>();
         }
 

@@ -14,11 +14,18 @@ namespace DocumentManagement.Dal
             _context = context;
         }
 
-        public async Task<Guid> CreateDocumentAsync(DocumentRecordEntity document)
+        public async Task<Guid> CreateDocumentAsync(DocumentEntity document)
         {
             _context.Document.Add(document);
             await _context.SaveChangesAsync();
-            return document.DocumentRecordId;
+            return document.DocumentId;
+        }
+
+        public async Task<Guid> CreateDocumentRecordAsync(DocumentRecordEntity documentRecord)
+        {
+            _context.DocumentRecord.Add(documentRecord);
+            await _context.SaveChangesAsync();
+            return documentRecord.DocumentRecordId;
         }
 
         protected virtual void Dispose(bool disposing)

@@ -6,7 +6,7 @@
     <members>
         <member name="M:DocumentManagementSolution.Controllers.DocumentController.AddPdf(DocumentManagement.Models.PdfDocument)">
             <summary>
-            Adds PDF to glob storage and detail to SQL
+            Adds PDF to Azure blob storage and detail to SQL
             </summary>
             <param name="pdf">PDF Document</param>
             <returns>An ActionResult of Document</returns>

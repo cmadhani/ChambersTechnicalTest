@@ -1,9 +1,11 @@
 using DocumentManagement.Models;
 using DocumentManagement.Service;
 using DocumentManagementSolution.Controllers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -47,24 +49,44 @@ namespace DocumentManagement.Tests.Unit.Api.Controllers
         }
 
         [Test]
-        public async Task AddPdf_PassedNullFile_ReturnsAppropriateErrorMessage()
+        public async Task AddPdf_CallsAddDocumentRecord_ReturnsTrue()
         {
-            var controller = new DocumentController(new DocumentService(), new ModelStateErrorHandler());
-            var pdf = new PdfDocument();
-
+            var documentServiceMock = new Mock<IDocumentService>();
+            var modelStateErrorHandlerMock = new Mock<IModelStateErrorHandler>();
+            var controller = new DocumentController(documentServiceMock.Object, modelStateErrorHandlerMock.Object);
+            var file = new Mock<IFormFile>();
+            file.Setup(f => f.FileName).Returns("something.pdf");
+            file.Setup(f => f.Length).Returns(1000);
+            var pdf = new PdfDocument { File = file.Object };
             MimicControllerModelValidation(controller, pdf);
-            var response = await controller.AddPdf(pdf);
-            var actual = ((SingleResponse<Document>)((ObjectResult)response.Result).Value).ErrorMessage;
 
-            Assert.That(actual, Is.EqualTo("Model Keys In Error:\r\nFile\r\n\r\nModel Error Messages:\r\nPlease provide PDF file.\r\n"));
+            var response = await controller.AddPdf(pdf);
+
+            documentServiceMock.Verify(x => x.AddDocumentRecord(pdf.File.FileName, It.IsAny<Guid>() , pdf.File.Length), Times.Once);
         }
+
+        [Test]
+        public async Task AddPdf_CallsAddDocument_ReturnsTrue()
+        {
+            var documentServiceMock = new Mock<IDocumentService>();
+            var modelStateErrorHandlerMock = new Mock<IModelStateErrorHandler>();
+            var controller = new DocumentController(documentServiceMock.Object, modelStateErrorHandlerMock.Object);
+            var file = new Mock<IFormFile>();
+            file.Setup(f => f.FileName).Returns("something.pdf");
+            var pdf = new PdfDocument { File = file.Object };
+            MimicControllerModelValidation(controller, pdf);
+
+            var response = await controller.AddPdf(pdf);
+
+            documentServiceMock.Verify(x => x.AddDocument(pdf.File), Times.Once);
+        }
+
+
         private DocumentController CreateDocumentController()
         {
             var documentServiceMock = new Mock<IDocumentService>();
-            var mModelStateErrorHandlerMock = new Mock<IModelStateErrorHandler>();
-
-
-            return new DocumentController(documentServiceMock.Object, mModelStateErrorHandlerMock.Object);
+            var modelStateErrorHandlerMock = new Mock<IModelStateErrorHandler>();
+            return new DocumentController(documentServiceMock.Object, modelStateErrorHandlerMock.Object);
         }
 
         private void MimicControllerModelValidation(ControllerBase controller, object model)

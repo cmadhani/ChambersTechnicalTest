@@ -17,4 +17,10 @@
     <ProjectReference Include="..\DocumentManagementSolution\DocumentManagement.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Content\gpg_brochure.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

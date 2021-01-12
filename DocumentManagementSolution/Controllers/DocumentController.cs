@@ -1,7 +1,6 @@
 ﻿using DocumentManagement.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Net;
 using System.Threading.Tasks;
 using DocumentManagement.Service;
@@ -48,15 +47,8 @@ namespace DocumentManagementSolution.Controllers
                 return new ObjectResult(response) { StatusCode = (int)HttpStatusCode.BadRequest };
             }
 
-                response.Model = await _service.AddPdf(
-                    new Document
-                    {
-                        FileSize = pdf.File.Length,
-                        FileName = pdf.File.Name,
-                        Id = Guid.NewGuid(),
-                        Location = "Location"
-                    });
-
+            var location = await _service.AddDocument(pdf.File);
+            response.Model = await _service.AddDocumentRecord(pdf.File.FileName, location, pdf.File.Length);
             return new ObjectResult(response) { StatusCode = (int)HttpStatusCode.Created };
         }
     }
