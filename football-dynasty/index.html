@@ -53,11 +53,14 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #25e87988}50%{box-shadow:0 0 0 6px #25e87933}}
 .bench-list{display:grid;gap:6px}.bench-chip{display:flex;justify-content:space-between;padding:8px 10px;background:#101923;border:1px solid #293949;border-radius:10px;font-size:12px}
 #matchPlayers{position:absolute;inset:0;z-index:4}
+.audio-toggle{background:#121a24;border:1px solid #293747;color:#eaf5ee;border-radius:10px;padding:7px 9px;font-size:11px;font-weight:900;min-width:42px}.audio-toggle.off{opacity:.55;border-color:#3a4552}
+.audio-hint{position:fixed;z-index:210;left:50%;bottom:92px;transform:translateX(-50%);background:#0b151d;border:1px solid #25e87966;color:#eaf5ee;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:900;display:none;box-shadow:0 10px 30px #000a;max-width:min(420px,92vw);text-align:center}.audio-hint.show{display:block;animation:fade .25s ease}
 </style>
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="toprow"><div class="brand">FOOTBALL <i>DYNASTY</i></div><div class="wallet"><span>🪙 <b id="coins">50,000</b></span><span>💎 <b id="gems">250</b></span></div></div></header>
+<header class="top"><div class="toprow"><div class="brand">FOOTBALL <i>DYNASTY</i></div><div class="wallet"><button type="button" class="audio-toggle" id="musicBtn" onclick="toggleMusic()" title="Music">🎵</button><button type="button" class="audio-toggle" id="sfxBtn" onclick="toggleSfx()" title="Sound effects">🔊</button><span>🪙 <b id="coins">50,000</b></span><span>💎 <b id="gems">250</b></span></div></div></header>
+<div class="audio-hint" id="audioHint">Tap anywhere to enable stadium music</div>
 
 <section id="home" class="page active">
   <div class="hero">
@@ -208,6 +211,7 @@ let state={
   tactics:{formation:"4-3-3",approach:"Balanced"},
   matchDifficulty:"Professional",
   tutorialSeen:false,starterPackClaimed:false,careerStarted:false,
+  musicOn:true,sfxOn:true,
   career:{season:1,matches:0,wins:0,draws:0,losses:0,goals:0,xp:0,position:8,trophies:0,gf:0,ga:0}
 };
 let selectedClub=null;
@@ -271,6 +275,11 @@ function showPage(id,btn){
   if(btn)btn.classList.add("active");
   else{let n={home:0,career:1,squad:2,packs:3,match:4,training:5,transfers:6}[id];if(n!==undefined)document.querySelectorAll(".nav button")[n].classList.add("active")}
   render();window.scrollTo(0,0);
+  if(typeof AudioFX!=="undefined"){AudioFX.ui();
+  if(AudioFX.started&&state.musicOn){
+    if(id==="match"&&(game.active||game.paused))AudioFX.startLoop("match");
+    else if(id!=="match"||!game.active)AudioFX.startLoop("menu");
+  }}
 }
 
 /* ========== RENDER ========== */
@@ -440,7 +449,7 @@ function openPack(price,min,max,currency="coins"){
   if(state[currency]<price){toast("Not enough "+currency+".");return}
   state[currency]-=price;
   const p=randomFromPool(min,max);
-  state.players.push(p);state.career.xp+=5;save();render();showPackReveal(p);
+  state.players.push(p);state.career.xp+=5;save();render();AudioFX.pack();showPackReveal(p);
 }
 function openStarterPack(){
   if(state.starterPackClaimed){toast("Starter pack already claimed.");return}
@@ -531,6 +540,7 @@ function startMatch(){
   ballPhysicsTimer=setInterval(updateBallPhysics,40);
   setActionStatus("kickoff","CENTRE");
   updateMatch();highlightControlled();updateLivePlayerHud();
+  AudioFX.resume();AudioFX.whistle();AudioFX.startLoop("match");
   if(tutorial.active&&tutorial.matchMode)setTutorialControlHint();
 }
 function tickMatch(){
@@ -560,6 +570,7 @@ function tickMatch(){
     document.getElementById("commentary").textContent="The referee blows for half-time.";
     document.getElementById("playMatchBtn").textContent="▶ RESUME SECOND HALF";
     toast("Half time — review stamina and tactics.");
+    AudioFX.halfTime();
     if(tutorial.active){document.getElementById("tutBody")&&toast("Half-time in the tutorial match — resume when ready.")}
   }
   if(game.minute>=90)finishMatch(false);
@@ -687,6 +698,7 @@ function registerGoal(side,scorerName){
     sayComment("GOAL! "+scorer+" finds the net!");
     toast("GOAL! "+scorer);
     setActionStatus("shoot","GOAL!");
+    AudioFX.goal();
   }else{
     game.away=Math.min(99,game.away+1);
     state.career.ga=(state.career.ga||0)+1;
@@ -697,6 +709,7 @@ function registerGoal(side,scorerName){
     showGoalBanner(scorer);
     sayComment("GOAL! "+scorer+" for "+currentOpponent()+"!");
     toast("Opposition goal — "+scorer);
+    AudioFX.goal();
   }
   updateMatch();
   // Never leave ball stuck — reset after celebration
@@ -989,6 +1002,7 @@ function resolveShot(){
       game.stats.awaySaves++;
       sayComment("What a save!");
       setActionStatus("shoot","SAVED");
+      AudioFX.save();
       resetAfterMiss("away");
     },true);
   }else if(outcome==="post"){
@@ -1033,17 +1047,18 @@ function playAction(a){
   }
   let text="";
   if(a==="pass"||a==="through"){
+    AudioFX.pass();
     let receiver=passToPlayer(a);
     if(receiver){game.stats.possession=Math.min(68,game.stats.possession+1);text=(a==="through"?"THROUGH BALL":"PASS")+": Ball played to "+receiver+".";sayComment(receiver.split(" ")[0]+" receives the ball.");}
-    if(maybeOpponentChallenge())text="TACKLED: The pass is cut out.";
+    if(maybeOpponentChallenge()){text="TACKLED: The pass is cut out.";AudioFX.tackle()}
     advanceTutorialControl(a);
   }
-  else if(a==="sprint"){game.sprint=true;text="SPRINT: Driving into space.";const el=controlledElement();if(el){const pos=elementPosition(el);const p=controlledPlayer();const spd=1.2+(p?.pac||60)/90;el.style.left=clamp(pos.x+spd*2.2,7,90)+"%";if(game.possession==="home")setBallPosition(parseFloat(el.style.left),pos.y)}setActionStatus(a,"WITH PLAYER");if(maybeOpponentChallenge())text="TACKLED: Sprint stopped.";advanceTutorialControl(a);setTimeout(()=>game.sprint=false,800)}
-  else if(a==="skill"){const p=controlledPlayer();const dri=(p?.dri||60)/100;text=Math.random()<(.4+dri*.45)?"SKILL: Beats the marker.":"SKILL: Loses control momentarily.";moveBallToElement(controlledElement(),a,"WITH PLAYER");if(text.includes("Loses")||maybeOpponentChallenge()){if(text.includes("Loses")){/* keep ball */}else text="TACKLED: The defender wins the duel."}advanceTutorialControl(a)}
-  else if(a==="shoot"){resolveShot();advanceTutorialControl(a);return}
-  else if(a==="cross"){resolveCross();advanceTutorialControl(a);return}
-  else if(a==="press"){resolveDefensiveAction("press");advanceTutorialControl(a);return}
-  else if(a==="switch"){switchPlayer();advanceTutorialControl(a);return}
+  else if(a==="sprint"){AudioFX.ui();game.sprint=true;text="SPRINT: Driving into space.";const el=controlledElement();if(el){const pos=elementPosition(el);const p=controlledPlayer();const spd=1.2+(p?.pac||60)/90;el.style.left=clamp(pos.x+spd*2.2,7,90)+"%";if(game.possession==="home")setBallPosition(parseFloat(el.style.left),pos.y)}setActionStatus(a,"WITH PLAYER");if(maybeOpponentChallenge()){text="TACKLED: Sprint stopped.";AudioFX.tackle()}advanceTutorialControl(a);setTimeout(()=>game.sprint=false,800)}
+  else if(a==="skill"){AudioFX.pass();const p=controlledPlayer();const dri=(p?.dri||60)/100;text=Math.random()<(.4+dri*.45)?"SKILL: Beats the marker.":"SKILL: Loses control momentarily.";moveBallToElement(controlledElement(),a,"WITH PLAYER");if(text.includes("Loses")||maybeOpponentChallenge()){if(text.includes("Loses")){/* keep ball */}else{text="TACKLED: The defender wins the duel.";AudioFX.tackle()}}advanceTutorialControl(a)}
+  else if(a==="shoot"){AudioFX.kick();resolveShot();advanceTutorialControl(a);return}
+  else if(a==="cross"){AudioFX.pass();resolveCross();advanceTutorialControl(a);return}
+  else if(a==="press"){AudioFX.ui();resolveDefensiveAction("press");advanceTutorialControl(a);return}
+  else if(a==="switch"){AudioFX.ui();switchPlayer();advanceTutorialControl(a);return}
   else{toast("That action is not available right now.");return}
   if(text)sayComment(text);updateMatch();updateLivePlayerHud();
 }
@@ -1161,6 +1176,7 @@ function finishMatch(forfeit=false){
   document.getElementById("matchPhase").textContent="FULL TIME";
   document.getElementById("playMatchBtn").textContent="▶ PLAY NEXT MATCH";
   if(!forfeit)sayComment(`The referee blows for full-time. ${state.club} ${game.home}–${game.away} ${opponent}.`);
+  AudioFX.fullTime();AudioFX.startLoop("menu");
   // Ratings
   const xi=lineupPlayers();
   xi.forEach(p=>{
@@ -1315,6 +1331,150 @@ function endTutorial(){
   showPage("career");
 }
 
+/* ========== AUDIO (procedural Web Audio — original, no copyrighted tracks) ========== */
+const AudioFX={
+  ctx:null,master:null,musicGain:null,sfxGain:null,crowdGain:null,
+  nodes:[],timers:[],mode:null,started:false,
+  ensure(){
+    if(this.ctx)return true;
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+    this.ctx=new AC();
+    this.master=this.ctx.createGain();this.master.gain.value=.85;this.master.connect(this.ctx.destination);
+    this.musicGain=this.ctx.createGain();this.musicGain.gain.value=state.musicOn?.55:0;this.musicGain.connect(this.master);
+    this.sfxGain=this.ctx.createGain();this.sfxGain.gain.value=state.sfxOn?.9:0;this.sfxGain.connect(this.master);
+    this.crowdGain=this.ctx.createGain();this.crowdGain.gain.value=.0;this.crowdGain.connect(this.musicGain);
+    return true;
+  },
+  resume(){if(!this.ensure())return;if(this.ctx.state==="suspended")this.ctx.resume();this.started=true;hideAudioHint();updateAudioButtons()},
+  stopMusic(){
+    this.timers.forEach(clearInterval);this.timers=[];
+    this.nodes.forEach(n=>{try{n.stop?.();n.disconnect?.()}catch(e){}});this.nodes=[];
+    this.mode=null;
+    if(this.crowdGain){const t=this.ctx.currentTime;this.crowdGain.gain.cancelScheduledValues(t);this.crowdGain.gain.setTargetAtTime(0,t,.08)}
+  },
+  setMusic(on){state.musicOn=!!on;if(this.musicGain){const t=this.ctx.currentTime;this.musicGain.gain.cancelScheduledValues(t);this.musicGain.gain.setTargetAtTime(on?.55:0,t,.12)}save();updateAudioButtons();if(on)this.resume()},
+  setSfx(on){state.sfxOn=!!on;if(this.sfxGain){const t=this.ctx.currentTime;this.sfxGain.gain.cancelScheduledValues(t);this.sfxGain.gain.setTargetAtTime(on?.9:0,t,.08)}save();updateAudioButtons();if(on)this.resume()},
+  tone(freq,dur=.18,type="sine",gain=.12,dest){
+    if(!this.ensure()||!state.sfxOn&&dest===this.sfxGain)return;
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain(),t=this.ctx.currentTime;
+    o.type=type;o.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g);g.connect(dest||this.sfxGain);o.start(t);o.stop(t+dur+.02);
+  },
+  noiseBurst(dur=.25,gain=.08){
+    if(!this.ensure()||!state.sfxOn)return;
+    const n=Math.floor(this.ctx.sampleRate*dur),buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate),data=buf.getChannelData(0);
+    for(let i=0;i<n;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/n,1.6);
+    const src=this.ctx.createBufferSource(),g=this.ctx.createGain(),f=this.ctx.createBiquadFilter();
+    f.type="bandpass";f.frequency.value=900;f.Q.value=.7;
+    g.gain.value=gain;src.buffer=buf;src.connect(f);f.connect(g);g.connect(this.sfxGain);src.start();
+  },
+  kick(){this.tone(90,.12,"triangle",.18);this.tone(180,.08,"sine",.08);this.noiseBurst(.08,.05)},
+  pass(){this.tone(420,.1,"sine",.07);this.tone(640,.08,"triangle",.04)},
+  whistle(){this.tone(1680,.35,"square",.045);setTimeout(()=>this.tone(1560,.22,"square",.035),120)},
+  save(){this.noiseBurst(.2,.1);this.tone(140,.15,"triangle",.1)},
+  tackle(){this.noiseBurst(.12,.09);this.tone(110,.1,"sawtooth",.06)},
+  goal(){
+    if(!this.ensure())return;
+    // Fanfare + crowd swell
+    [523,659,784,1046].forEach((f,i)=>setTimeout(()=>this.tone(f,.35,"triangle",.11),i*90));
+    this.noiseBurst(.55,.14);
+    if(this.crowdGain){const t=this.ctx.currentTime;this.crowdGain.gain.cancelScheduledValues(t);this.crowdGain.gain.setTargetAtTime(.45,t,.05);this.crowdGain.gain.setTargetAtTime(.18,t+.9,.4)}
+  },
+  halfTime(){this.whistle();this.tone(330,.4,"sine",.06)},
+  fullTime(){this.whistle();setTimeout(()=>this.whistle(),280);[392,523,659].forEach((f,i)=>setTimeout(()=>this.tone(f,.4,"triangle",.09),400+i*120))},
+  ui(){this.tone(660,.06,"sine",.04)},
+  pack(){this.tone(880,.12,"triangle",.07);setTimeout(()=>this.tone(1175,.18,"sine",.08),90)},
+  startCrowd(){
+    if(!this.ensure())return;
+    // Filtered noise bed = stadium atmosphere
+    const n=2*this.ctx.sampleRate,buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+    const src=this.ctx.createBufferSource();src.buffer=buf;src.loop=true;
+    const f=this.ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=480;
+    const g=this.ctx.createGain();g.gain.value=1;
+    src.connect(f);f.connect(g);g.connect(this.crowdGain);src.start();
+    this.nodes.push(src);this.crowdGain.gain.setTargetAtTime(.16,this.ctx.currentTime,.2);
+  },
+  startLoop(mode){
+    this.resume();
+    if(!state.musicOn){this.stopMusic();return}
+    if(this.mode===mode)return;
+    this.stopMusic();this.mode=mode;this.resume();
+    if(mode==="match"){this.startCrowd();this.startMatchGroove()}
+    else this.startMenuPad();
+  },
+  startMenuPad(){
+    if(!this.ensure())return;
+    const t0=this.ctx.currentTime;
+    // Soft evolving pad chords
+    const chord=[110,164.81,220,277.18];
+    chord.forEach((freq,i)=>{
+      const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+      o.type=i%2?"triangle":"sine";o.frequency.value=freq;
+      g.gain.value=.025+i*.008;
+      const lfo=this.ctx.createOscillator(),lg=this.ctx.createGain();
+      lfo.frequency.value=.08+i*.03;lg.gain.value=.01;lfo.connect(lg);lg.connect(g.gain);lfo.start();
+      o.connect(g);g.connect(this.musicGain);o.start(t0);
+      this.nodes.push(o,lfo);
+    });
+    // Subtle pulse
+    const pulse=()=>{
+      if(this.mode!=="menu"||!state.musicOn)return;
+      this.tone(55,.4,"sine",.03,this.musicGain);
+      this.tone(82.4,.35,"triangle",.02,this.musicGain);
+    };
+    pulse();this.timers.push(setInterval(pulse,2400));
+  },
+  startMatchGroove(){
+    if(!this.ensure())return;
+    let step=0;
+    const tick=()=>{
+      if(this.mode!=="match"||!state.musicOn)return;
+      const t=this.ctx.currentTime;
+      // Kick on 1 and 3
+      if(step%4===0||step%4===2){
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.type="sine";o.frequency.setValueAtTime(80,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);
+        g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);
+        o.connect(g);g.connect(this.musicGain);o.start(t);o.stop(t+.2);
+      }
+      // Snare-ish noise on 2 and 4
+      if(step%4===1||step%4===3)this.noiseBurst(.07,.035);
+      // Bass line
+      const bass=[55,55,65.4,73.4,82.4,73.4,65.4,55][step%8];
+      const b=this.ctx.createOscillator(),bg=this.ctx.createGain();
+      b.type="triangle";b.frequency.value=bass;
+      bg.gain.setValueAtTime(.07,t);bg.gain.exponentialRampToValueAtTime(.0001,t+.22);
+      b.connect(bg);bg.connect(this.musicGain);b.start(t);b.stop(t+.25);
+      // Lead motif every 8 steps
+      if(step%8===0){
+        [220,246.9,261.6,293.7].forEach((f,i)=>{
+          setTimeout(()=>{
+            if(this.mode!=="match")return;
+            const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+            o.type="sine";o.frequency.value=f;
+            g.gain.setValueAtTime(.035,this.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,this.ctx.currentTime+.28);
+            o.connect(g);g.connect(this.musicGain);o.start();o.stop(this.ctx.currentTime+.3);
+          },i*110);
+        });
+      }
+      step++;
+    };
+    tick();this.timers.push(setInterval(tick,320));
+  }
+};
+function updateAudioButtons(){
+  const m=document.getElementById("musicBtn"),s=document.getElementById("sfxBtn");
+  if(m){m.textContent=state.musicOn?"🎵":"🎵";m.classList.toggle("off",!state.musicOn);m.title=state.musicOn?"Music on":"Music muted"}
+  if(s){s.textContent=state.sfxOn?"🔊":"🔇";s.classList.toggle("off",!state.sfxOn);s.title=state.sfxOn?"SFX on":"SFX muted"}
+}
+function hideAudioHint(){document.getElementById("audioHint")?.classList.remove("show")}
+function showAudioHint(){const h=document.getElementById("audioHint");if(h&&!AudioFX.started)h.classList.add("show")}
+function toggleMusic(){AudioFX.resume();AudioFX.setMusic(!state.musicOn);if(state.musicOn)AudioFX.startLoop(document.getElementById("match")?.classList.contains("active")&&game.active?"match":"menu");else AudioFX.stopMusic();toast(state.musicOn?"Music on":"Music muted")}
+function toggleSfx(){AudioFX.resume();AudioFX.setSfx(!state.sfxOn);toast(state.sfxOn?"Sound effects on":"Sound effects muted")}
+function unlockAudio(){AudioFX.resume();if(state.musicOn){const onMatch=document.getElementById("match")?.classList.contains("active")&&(game.active||game.paused);AudioFX.startLoop(onMatch?"match":"menu")}hideAudioHint()}
+
 /* ========== BOOT ========== */
 function closeTutorial(){skipTutorial()} // legacy button safety
 
@@ -1324,7 +1484,10 @@ if(!localStorage.getItem("FD_MASTER_V2")&&!localStorage.getItem("FD_MASTER")){
   state.players=starterPlayers.map(p=>({...p}));
   state.lineup=starterPlayers.map(p=>p.name);
 }
-render();setupJoystick();setupTrainingSwipe();resetMatch();
+if(state.musicOn==null)state.musicOn=true;if(state.sfxOn==null)state.sfxOn=true;
+render();setupJoystick();setupTrainingSwipe();resetMatch();updateAudioButtons();
+setTimeout(showAudioHint,700);
+["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,unlockAudio,{once:true,passive:true}));
 
 // First open tutorial
 if(!state.tutorialSeen){setTimeout(()=>startTutorial(false),400)}
@@ -1338,6 +1501,7 @@ window.selectTrainingPlayer=selectTrainingPlayer;window.startTraining=startTrain
 window.beginTrainingShot=beginTrainingShot;window.trainingShoot=trainingShoot;window.cancelTrainingShot=cancelTrainingShot;
 window.searchMarket=searchMarket;window.buy=buy;window.startTutorial=startTutorial;window.skipTutorial=skipTutorial;window.tutorialNext=tutorialNext;
 window.showCareerTab=showCareerTab;window.toast=toast;window.closeTutorial=closeTutorial;
+window.toggleMusic=toggleMusic;window.toggleSfx=toggleSfx;
 </script>
 </body>
 </html>
