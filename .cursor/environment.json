@@ -1,0 +1,20 @@
+{
+  "name": "Chambers Technical Test",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "Document Management API",
+      "description": "ASP.NET Core 3.1 Web API (Swagger UI at http://localhost:5000/swagger).",
+      "command": "export DOTNET_ROOT=\"$HOME/.dotnet\"; export PATH=\"$HOME/.dotnet:$PATH\"; export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1; export ASPNETCORE_ENVIRONMENT=Development; export ASPNETCORE_URLS=\"http://0.0.0.0:5000\"; cd DocumentManagementSolution && dotnet run --no-launch-profile"
+    },
+    {
+      "name": "Football Dynasty",
+      "description": "Static Football Dynasty game served at http://localhost:8080.",
+      "command": "cd football-dynasty && python3 -m http.server 8080 --bind 0.0.0.0"
+    }
+  ],
+  "ports": [
+    { "name": "Document Management API", "port": 5000 },
+    { "name": "Football Dynasty", "port": 8080 }
+  ]
+}
