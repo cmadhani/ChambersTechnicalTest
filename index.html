@@ -265,9 +265,6 @@ function portraitMarkup(p){let seed=[...p.name].reduce((a,c)=>a+c.charCodeAt(0),
 function toast(t){let e=document.getElementById("toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2100)}
 function updateWallet(){document.getElementById("coins").textContent=state.coins.toLocaleString();document.getElementById("gems").textContent=state.gems.toLocaleString()}
 function showPage(id,btn){
-  /* #region agent log */
-  console.log('[FD-DEBUG] showPage ENTRY',{id:id,pageExists:!!document.getElementById(id),tutorialActive:tutorial.active,tutorialStep:tutorial.step,careerStarted:state.careerStarted});
-  /* #endregion */
   document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));
@@ -473,60 +470,24 @@ function showPackReveal(p,fromTutorial){
 
 /* ========== CAREER SETUP ========== */
 function openCareerSetup(){
-  /* #region agent log */
-  console.log('[FD-DEBUG] openCareerSetup ENTRY',{tutorialSeen:state.tutorialSeen,careerStarted:state.careerStarted,tutorialActive:tutorial.active,tutorialStep:tutorial.step,selectedClub:selectedClub&&selectedClub[0]});
-  /* #endregion */
-  if(!state.tutorialSeen&&!tutorial.active){
-    /* #region agent log */
-    console.log('[FD-DEBUG] openCareerSetup BRANCH=startTutorial (first-time, no tutorialSeen)');
-    /* #endregion */
-    startTutorial(false);return}
-  /* #region agent log */
-  console.log('[FD-DEBUG] openCareerSetup BRANCH=showModal (building clubChoices)');
-  /* #endregion */
+  if(!state.tutorialSeen&&!tutorial.active){startTutorial(false);return}
   let m=document.getElementById("modal");let box=document.getElementById("clubChoices");box.innerHTML="";
   clubs.forEach((c)=>{let b=document.createElement("button");b.className="clubchoice"+(state.club===c[0]?" active":"");b.innerHTML=`<div class="crest" style="background:${c[2]}">${c[1]}</div><div><b>${c[0]}</b><div class="muted">Start Manager Career here</div></div>`;b.onclick=()=>{selectedClub=c;document.querySelectorAll(".clubchoice").forEach(x=>x.classList.remove("active"));b.classList.add("active")};box.appendChild(b)});
-  /* #region agent log */
-  console.log('[FD-DEBUG] openCareerSetup showing #modal now');
-  /* #endregion */
   m.classList.add("show")
 }
-function closeModal(){
-  /* #region agent log */
-  console.log('[FD-DEBUG] closeModal ENTRY — hiding #modal',{modalHadShow:document.getElementById("modal").classList.contains("show")});
-  /* #endregion */
-  document.getElementById("modal").classList.remove("show")}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
 function startCareer(){
-  /* #region agent log */
-  console.log('[FD-DEBUG] startCareer ENTRY',{selectedClub:selectedClub&&selectedClub[0],tutorialActive:tutorial.active,tutorialStep:tutorial.step,tutorialSeen:state.tutorialSeen,careerStarted:state.careerStarted,currentStepAction:(TUTORIAL_STEPS[tutorial.step]&&TUTORIAL_STEPS[tutorial.step].action)});
-  /* #endregion */
   if(!selectedClub)selectedClub=clubs.find(c=>c[0]===state.club)||clubs[0];
-  /* #region agent log */
-  console.log('[FD-DEBUG] startCareer resolved selectedClub',{selectedClub:selectedClub&&selectedClub[0]});
-  /* #endregion */
   state.club=selectedClub[0];state.crest=selectedClub[1];state.colour=selectedClub[2];state.careerStarted=true;
   if(state.career.position>12)state.career.position=8;
   save();closeModal();render();
   if(tutorial.active&&TUTORIAL_STEPS[tutorial.step]&&TUTORIAL_STEPS[tutorial.step].action==="club"){
-    /* #region agent log */
-    console.log('[FD-DEBUG] startCareer BRANCH=tutorial-club-advance',{fromStep:tutorial.step});
-    /* #endregion */
     tutorial.step++;
-    if(tutorial.step>=TUTORIAL_STEPS.length){
-      /* #region agent log */
-      console.log('[FD-DEBUG] startCareer tutorial ended (step out of range)',{step:tutorial.step});
-      /* #endregion */
-      endTutorial();return}
+    if(tutorial.step>=TUTORIAL_STEPS.length){endTutorial();return}
     document.getElementById("tutorialModal").classList.add("show");
     renderTutorialStep();
-    /* #region agent log */
-    console.log('[FD-DEBUG] startCareer advanced tutorial + reshowed #tutorialModal',{newStep:tutorial.step});
-    /* #endregion */
     return;
   }
-  /* #region agent log */
-  console.log('[FD-DEBUG] startCareer BRANCH=showPage(career) (non-tutorial path)');
-  /* #endregion */
   showPage("career");toast("Career club selected — build from 60 OVR.")
 }
 
@@ -1282,16 +1243,10 @@ function startTutorial(replay){
   renderTutorialStep();
 }
 function skipTutorial(){
-  /* #region agent log */
-  console.log('[FD-DEBUG] skipTutorial ENTRY',{tutorialActive:tutorial.active,tutorialStep:tutorial.step,tutorialSeen:state.tutorialSeen,careerStarted:state.careerStarted});
-  /* #endregion */
   tutorial.active=false;tutorial.awaitGoal=false;tutorial.controlFocus=null;tutorial.matchMode=false;
   state.tutorialSeen=true;save();
   document.getElementById("tutorialModal").classList.remove("show");
   toast("Tutorial skipped — you can replay it from Training.");
-  /* #region agent log */
-  console.log('[FD-DEBUG] skipTutorial branch check',{careerStarted:state.careerStarted,willOpenCareerSetup:!state.careerStarted});
-  /* #endregion */
   if(!state.careerStarted)openCareerSetup();
 }
 function renderTutorialStep(){
@@ -1309,14 +1264,7 @@ function renderTutorialStep(){
 }
 function tutorialNext(){
   const s=TUTORIAL_STEPS[tutorial.step];
-  /* #region agent log */
-  console.log('[FD-DEBUG] tutorialNext ENTRY',{tutorialStep:tutorial.step,stepAction:s&&s.action,tutorialActive:tutorial.active,careerStarted:state.careerStarted});
-  /* #endregion */
-  if(s?.action==="club"){
-    /* #region agent log */
-    console.log('[FD-DEBUG] tutorialNext BRANCH=club -> openCareerSetup');
-    /* #endregion */
-    document.getElementById("tutorialModal").classList.remove("show");openCareerSetup();return}
+  if(s?.action==="club"){document.getElementById("tutorialModal").classList.remove("show");openCareerSetup();return}
   if(s?.action==="squad"){showPage("squad");}
   if(s?.action==="pack"){showPage("packs");document.getElementById("tutorialModal").classList.remove("show");if(!state.starterPackClaimed){toast("Open your FREE starter pack.");return}else{/* already claimed */}}
   if(s?.action==="xi"){showPage("squad");toast("Tap ADD TO STARTING XI on your new player, then continue.");}
