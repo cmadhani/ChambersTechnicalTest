@@ -39,7 +39,7 @@ namespace DocumentManagement.Tests.Acceptance
         public async Task HappyPath()
         {
             PdfDocument pdf = new PdfDocument();
-            var ms = new MemoryStream(File.ReadAllBytes(@".\gpg_brochure.pdf"));
+            var ms = new MemoryStream(File.ReadAllBytes(Path.Combine("Content", "gpg_brochure.pdf")));
             pdf.File = new FormFile(ms, 0, ms.Length, "gpg_brochure.pdf", "gpg_brochure.pdf"); ;
 
             var options = new DbContextOptionsBuilder<DocumentDbContext>()

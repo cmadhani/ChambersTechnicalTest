@@ -34,7 +34,8 @@ namespace DocumentManagement.Tests.Unit.Services.Helper
             var modelState = new ModelStateDictionary();
             modelState.AddModelError("FirstName", "First Name is Required");
             var actual = _subject.GetValues(modelState);
-            Assert.That(actual, Is.EqualTo("Model Keys In Error:\r\nFirstName\r\n\r\nModel Error Messages:\r\nFirst Name is Required\r\n"));
+            var nl = Environment.NewLine;
+            Assert.That(actual, Is.EqualTo($"Model Keys In Error:{nl}FirstName{nl}{nl}Model Error Messages:{nl}First Name is Required{nl}"));
         }
     }
 }
