@@ -1,11 +1,11 @@
 {
-  "name": "Chambers Technical Test",
+  "name": "Chambers Technical Test + Football Dynasty",
   "install": "bash .cursor/install.sh",
   "terminals": [
     {
       "name": "Document Management API",
       "description": "ASP.NET Core 3.1 Web API (Swagger UI at http://localhost:5000/swagger).",
-      "command": "export DOTNET_ROOT=\"$HOME/.dotnet\"; export PATH=\"$HOME/.dotnet:$PATH\"; export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1; export ASPNETCORE_ENVIRONMENT=Development; export ASPNETCORE_URLS=\"http://0.0.0.0:5000\"; cd DocumentManagementSolution && dotnet run --no-launch-profile"
+      "command": "export DOTNET_ROOT=\"$HOME/.dotnet\"; export PATH=\"$HOME/.dotnet:$PATH\"; export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1; export ASPNETCORE_ENVIRONMENT=Development; cd DocumentManagementSolution && dotnet run --no-launch-profile --urls http://0.0.0.0:5000"
     },
     {
       "name": "Football Dynasty",
