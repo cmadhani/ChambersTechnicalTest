@@ -481,7 +481,13 @@ function startCareer(){
   state.club=selectedClub[0];state.crest=selectedClub[1];state.colour=selectedClub[2];state.careerStarted=true;
   if(state.career.position>12)state.career.position=8;
   save();closeModal();render();
-  if(tutorial.active&&tutorial.step===1){tutorialNext();return}
+  if(tutorial.active&&TUTORIAL_STEPS[tutorial.step]&&TUTORIAL_STEPS[tutorial.step].action==="club"){
+    tutorial.step++;
+    if(tutorial.step>=TUTORIAL_STEPS.length){endTutorial();return}
+    document.getElementById("tutorialModal").classList.add("show");
+    renderTutorialStep();
+    return;
+  }
   showPage("career");toast("Career club selected — build from 60 OVR.")
 }
 
