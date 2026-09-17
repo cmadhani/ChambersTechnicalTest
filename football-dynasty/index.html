@@ -567,9 +567,29 @@ function startMatchLoop(){
   matchLoopId=requestAnimationFrame(step);
 }
 function stopMatchLoop(){if(matchLoopId!==null){cancelAnimationFrame(matchLoopId);matchLoopId=null}}
+/* toggleLineup lets the XI shrink to seven and nothing checked again at
+   kick-off, so you could line up eight against a full opposition eleven with
+   no indication anything was wrong. Top the XI back up from the bench. */
+function ensureFullXI(){
+  const before=lineupPlayers().length;
+  if(before>=11)return;
+  normalizeLineup();
+  const xi=lineupPlayers();
+  xi.forEach(p=>{
+    if(game.stamina[p.name]==null)game.stamina[p.name]=100;
+    if(game.playerRatings[p.name]==null)game.playerRatings[p.name]=6.5;
+  });
+  if(xi.length>before){
+    save();renderMatchPlayers();placePlayersKickoff();
+    toast("Starting XI was short — promoted "+(xi.length-before)+" from the bench.");
+  }else if(xi.length){
+    toast("Only "+xi.length+" players available — you are a man down.");
+  }
+}
 function startMatch(){
   if(game.minute>=90&&!game.active&&!game.paused){resetMatch()}
   if(game.minute>=90&&!game.paused){toast("Full time. Continue from the report or start next fixture.");return}
+  if(game.minute===0&&!game.active)ensureFullXI();
   if(!lineupPlayers().length){toast("Set a Starting XI first.");showPage("squad");return}
   if(!homeEls().length)renderMatchPlayers();
   game.active=true;game.paused=false;
