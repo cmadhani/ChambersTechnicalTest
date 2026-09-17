@@ -222,8 +222,9 @@ const difficultyProfiles={
 
 /* Off-ball movement. Players drift toward the ball but are sprung back to
    their formation slot, otherwise the random walk makes the whole team clump
-   together in the middle of the pitch. */
-const BALL_PULL=.03, SHAPE_PULL=.10, AWAY_SHAPE_PULL=.05;
+   together in the middle of the pitch. Keepers ignore the ball pull entirely
+   and hold a tight line, since anything else walks them off their goal. */
+const BALL_PULL=.025, SHAPE_PULL=.14, AWAY_SHAPE_PULL=.09, GK_SHAPE_PULL=.4;
 
 const emptyStats=()=>({possession:50,shots:0,awayShots:0,sot:0,awaySot:0,passes:0,awayPasses:0,passAttempts:0,awayPassAttempts:0,tackles:0,awayTackles:0,corners:0,awayCorners:0,saves:0,awaySaves:0,fouls:0,awayFouls:0});
 let game={minute:0,home:0,away:0,active:false,paused:false,controlled:9,ballOwner:9,possession:"home",tackled:false,setPiece:"",ballX:48,ballY:48,ballVX:0,ballVY:0,ballLoose:false,inFlight:false,awayAttack:0,stats:emptyStats(),stamina:{},substituted:false,goalscorers:[],playerRatings:{},lastScorer:"",goalLock:false,sprint:false,halfShown:false};
@@ -1124,12 +1125,14 @@ function moveFieldPlayers(){
     if(i===game.controlled){p.classList.add("controlled");return}
     const player=xi[i];
     const anchor=spots[i]||[50,50];
+    const keeper=i===0||player?.pos==="GK";
     const stamina=(game.stamina[player?.name]||100)/100;
     const reac=((player?.pac||60)+(player?.phy||60))/200;
-    const jitter=(1.2+reac*1.4)*stamina;
+    const jitter=(keeper ? .6 : 1.2+reac*1.4)*stamina;
+    const ballPull=keeper?0:BALL_PULL,shapePull=keeper?GK_SHAPE_PULL:SHAPE_PULL;
     let x=parseFloat(p.style.left)||anchor[0],y=parseFloat(p.style.top)||anchor[1];
-    x+=(game.ballX-x)*BALL_PULL;y+=(game.ballY-y)*BALL_PULL;
-    x+=(anchor[0]-x)*SHAPE_PULL;y+=(anchor[1]-y)*SHAPE_PULL;
+    x+=(game.ballX-x)*ballPull;y+=(game.ballY-y)*ballPull;
+    x+=(anchor[0]-x)*shapePull;y+=(anchor[1]-y)*shapePull;
     x+=(Math.random()-.5)*jitter;y+=(Math.random()-.5)*jitter;
     p.style.left=clamp(x,6,90)+"%";p.style.top=clamp(y,14,86)+"%";
     p.classList.toggle("controlled",i===game.controlled);
@@ -1139,6 +1142,11 @@ function moveFieldPlayers(){
     const move=profile.aiMove*(.8+ovr*.4);
     const anchor=awaySpots[i]||[75,50];
     let x=parseFloat(p.style.left)||anchor[0],y=parseFloat(p.style.top)||anchor[1];
+    if(i===0){
+      x+=(anchor[0]-x)*GK_SHAPE_PULL;y+=(anchor[1]-y)*GK_SHAPE_PULL+(Math.random()-.5)*.6;
+      p.style.left=clamp(x,10,94)+"%";p.style.top=clamp(y,14,86)+"%";
+      return;
+    }
     if(game.possession==="away"){x-=move*.6;y+=(Math.random()-.5)*move*2}
     else{x+=move*.3;y+=(Math.random()-.5)*move*1.5
       // Track ball a bit
