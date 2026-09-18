@@ -1459,10 +1459,11 @@ function renderTimeline(){
    when the AI shoots, but it was never shown; homeAttack mirrors it so both
    sides of the pressure are readable. ---- */
 function updateHomeAttack(){
-  if(game.possession==="home"&&!game.inFlight){
-    const advance=clamp((game.ballX-20)/70,0,1);
-    game.homeAttack=Math.min(100,(game.homeAttack||0)+2+advance*7);
-  }else game.homeAttack=Math.max(0,(game.homeAttack||0)-4);
+  /* Eased toward a target rather than accumulated. An accumulator pins itself
+     at 100 the moment you hold possession for a while and then tells you
+     nothing; this tracks how far up the pitch you actually are. */
+  const target=game.possession==="home"&&!game.inFlight?clamp((game.ballX-14)/78*100,0,100):0;
+  game.homeAttack=Math.round(clamp((game.homeAttack||0)+(target-(game.homeAttack||0))*.3,0,100));
 }
 function updateMomentum(){
   const set=(base,v)=>{
