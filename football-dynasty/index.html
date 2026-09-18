@@ -128,7 +128,14 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 .friend-body{flex:1;min-width:0}
 .friend-name{font-size:13px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .friend-meta{font-size:10px;color:#8fa3b8;margin-top:2px}
-.codebox{width:100%;background:#070c11;border:1px solid #223041;border-radius:10px;color:#cfe0f0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;padding:9px;resize:vertical;line-height:1.45}
+.codebox{width:100%;background:#070c11;border:1px solid #223041;border-radius:10px;color:#cfe0f0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;padding:9px 9px 0;resize:vertical;line-height:15px}
+/* A textarea scrolls inside its padding box, so the row after the last visible
+   one used to bleed into the bottom padding as a half-clipped line. Dropping
+   the bottom padding and pinning the height to whole lines
+   (rows*15 + 9 top padding + 2 border) clips on a line boundary instead. */
+.codebox[rows="3"]{height:56px}
+.codebox[rows="4"]{height:71px}
+input.codebox{padding:9px;height:auto}
 .online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#54657a;margin-right:6px;vertical-align:0}
 .online-dot.live{background:#25e879;box-shadow:0 0 8px #25e879}
 .online-dot.waiting{background:#e5c23c}
