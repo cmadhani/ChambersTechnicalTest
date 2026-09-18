@@ -55,13 +55,19 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 #matchPlayers{position:absolute;inset:0;z-index:4}
 
 /* ===== Match experience: momentum meters, event timeline, cards, subs, keys ===== */
-.meter{display:flex;align-items:center;gap:8px;margin:7px 0}
-.meter>b{font-size:9px;letter-spacing:.08em;color:#8fa3b8;min-width:118px}
-.meter .track{flex:1;height:9px;border-radius:6px;background:#0c141d;border:1px solid #223041;overflow:hidden}
-.meter .fill{display:block;height:100%;width:0%;border-radius:6px;transition:width .3s linear}
+/* Label above the bar rather than beside it. Side by side, a 118px label left
+   only ~77px of track on a phone-width layout, so a real reading of 16 was a
+   sliver nobody could see. */
+.meter{margin:10px 0}
+.meter .mhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px}
+.meter .mhead b{font-size:9px;letter-spacing:.08em;color:#8fa3b8}
+.meter .track{height:12px;border-radius:7px;background:#0c141d;border:1px solid #223041;overflow:hidden}
+.meter .fill{display:block;height:100%;width:0%;border-radius:7px;transition:width .3s linear}
 .meter .fill.home{background:linear-gradient(90deg,#1b6b42,#25e879)}
 .meter .fill.away{background:linear-gradient(90deg,#8a5a1c,#e5523c)}
-.meter .val{font-size:10px;font-weight:1000;color:#cfe0f0;min-width:34px;text-align:right}
+.meter .val{font-size:11px;font-weight:1000;color:#cfe0f0}
+.sheet-head h2{margin-top:3px}
+.sheet-head .muted{margin-top:4px}
 .timeline{max-height:176px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
 .tl-row{display:flex;gap:8px;align-items:flex-start;background:#080d13;border:1px solid #1d2937;border-left-width:3px;border-radius:7px;padding:5px 8px}
 .tl-min{font-size:10px;font-weight:1000;color:#7f93a8;min-width:28px}
@@ -153,8 +159,8 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
   <div class="commentary" aria-live="polite">🎙️ <b>Commentator:</b> <span id="commentary">Welcome to the match. Kick-off is moments away.</span></div>
   <div class="panel">
     <div class="row"><h3>Momentum</h3><span class="eyebrow">LIVE PRESSURE</span></div>
-    <div class="meter"><b>YOUR ATTACK</b><div class="track" role="progressbar" aria-label="Your attacking pressure" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="homeThreatTrack"><i class="fill home" id="homeThreatFill"></i></div><span class="val" id="homeThreatVal">0</span></div>
-    <div class="meter"><b>OPPOSITION THREAT</b><div class="track" role="progressbar" aria-label="Opposition threat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="awayThreatTrack"><i class="fill away" id="awayThreatFill"></i></div><span class="val" id="awayThreatVal">0</span></div>
+    <div class="meter"><div class="mhead"><b>YOUR ATTACK</b><span class="val" id="homeThreatVal">0</span></div><div class="track" role="progressbar" aria-label="Your attacking pressure" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="homeThreatTrack"><i class="fill home" id="homeThreatFill"></i></div></div>
+    <div class="meter"><div class="mhead"><b>OPPOSITION THREAT</b><span class="val" id="awayThreatVal">0</span></div><div class="track" role="progressbar" aria-label="Opposition threat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="awayThreatTrack"><i class="fill away" id="awayThreatFill"></i></div></div>
   </div>
   <div class="controls" id="matchControls"></div>
   <div class="keyhints" id="keyHints"></div>
@@ -214,7 +220,7 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 <div id="modal" class="modal"><div class="sheet"><div class="row"><h2>Choose Your Club</h2><button class="btn" style="width:auto;margin:0" onclick="closeModal()">✕</button></div><p class="muted">This is your Manager Career club. Your Football Dynasty players will be available to select into its squad.</p><div id="clubChoices"></div><button class="btn primary" onclick="startCareer()">CONFIRM CLUB & PLAY</button></div></div>
 <div id="squadModal" class="modal"><div class="sheet"><div class="row"><div><h2>Build your Starting XI</h2><div class="muted">Choose up to 11 cards. Your best available players are selected by default.</div></div><button class="btn" style="width:auto;margin:0" onclick="closeSquadPicker()">✕</button></div><div id="squadChoices"></div><button class="btn primary" onclick="saveSquadPicker()">SAVE STARTING XI</button></div></div>
 <div id="subsModal" class="modal"><div class="sheet">
-  <div class="row"><div><div class="eyebrow">SUBSTITUTIONS <span id="subsSheetCount">0/3</span></div><h2>Make a change</h2><div class="muted">Pick a tired player to come off, then a replacement from the bench.</div></div><button class="btn" style="width:auto;margin:0" onclick="closeSubs()" aria-label="Close substitutions">✕</button></div>
+  <div class="row"><div class="sheet-head"><div class="eyebrow">SUBSTITUTIONS <span id="subsSheetCount">0/3</span></div><h2>Make a change</h2><div class="muted">Pick a tired player to come off, then a replacement from the bench.</div></div><button class="btn" style="width:auto;margin:0" onclick="closeSubs()" aria-label="Close substitutions">✕</button></div>
   <div class="eyebrow" style="margin-top:10px">ON THE PITCH — TAP TO WITHDRAW</div>
   <div id="subsOnPitch"></div>
   <div class="eyebrow" style="margin-top:10px">BENCH — TAP TO BRING ON</div>
