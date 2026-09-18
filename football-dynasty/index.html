@@ -242,7 +242,17 @@ const starterBlueprint=[
   ["Alex Rivera","GK",60,1],["Noah Blake","RB",59,2],["Ethan Cole","CB",61,4],["Marcus Hale","CB",60,5],["Milan Petrov","LB",58,3],
   ["Lucas Grant","CDM",60,6],["Daniel Okoro","CM",61,8],["Samir Khan","CAM",58,10],["Rafael Costa","RW",61,7],["Luca Moretti","ST",62,9],["Marco Silva","LW",60,11]
 ];
+/* A small bench so substitutions and the fitness system are usable from the
+   very first match. A new career previously had exactly eleven players, so
+   benchPlayers() returned nothing and there was no way to make a change.
+   These sit clearly below the starting eleven on rating, so normalizeLineup
+   still picks the intended XI. */
+const benchBlueprint=[
+  ["Isaac Boyd","GK",54,13],["Tobias Lang","CB",55,15],["Femi Adeyemi","CM",56,14],["Danny Wolfe","ST",56,16]
+];
 const starterPlayers=starterBlueprint.map(([n,p,o,num])=>makePlayer(n,p,o,num));
+const benchReserves=benchBlueprint.map(([n,p,o,num])=>makePlayer(n,p,o,num));
+const squadPlayers=starterPlayers.concat(benchReserves);
 const packPool=[
   ["Jayden King","ST"],["Kofi Mensah","RW"],["Leo Varga","ST"],["Isla Hart","CAM"],["Theo Nkosi","CM"],["Omar Farid","CDM"],
   ["Kai Mercer","ST"],["Nico Vale","CAM"],["Dario Leone","CB"],["Tomas Reed","LW"],["Milo Hart","ST"],["Kian Roberts","CM"],
@@ -255,7 +265,7 @@ const oppositionTemplates=[["Mason Reed","GK",72,1],["Theo Grant","CB",69,4],["O
 
 let state={
   coins:50000,gems:250,club:"Dynasty FC",crest:"⚡",colour:"#25e879",
-  players:starterPlayers.map(p=>({...p})),
+  players:squadPlayers.map(p=>({...p})),
   lineup:starterPlayers.map(p=>p.name),
   tactics:{formation:"4-3-3",approach:"Balanced"},
   matchDifficulty:"Professional",
@@ -304,11 +314,11 @@ function load(){
     const x=JSON.parse(localStorage.getItem("FD_MASTER_V2")||localStorage.getItem("FD_MASTER"));
     if(x){
       state={...state,...x,tactics:{...state.tactics,...(x.tactics||{})},career:{...state.career,...(x.career||{})}};
-      if(!Array.isArray(state.players)||!state.players.length)state.players=starterPlayers.map(p=>({...p}));
+      if(!Array.isArray(state.players)||!state.players.length)state.players=squadPlayers.map(p=>({...p}));
       // Migrate oversized starter squads toward ~60 if still using old 80+ defaults and never claimed starter pack
-      if(!state.starterPackClaimed && state.players.length<=12){
+      if(!state.starterPackClaimed && state.players.length<=16){
         const avg=state.players.reduce((a,p)=>a+p.ovr,0)/state.players.length;
-        if(avg>72){state.players=starterPlayers.map(p=>({...p}));state.lineup=starterPlayers.map(p=>p.name);state.coins=Math.min(state.coins,50000);state.gems=Math.min(state.gems,250)}
+        if(avg>72){state.players=squadPlayers.map(p=>({...p}));state.lineup=starterPlayers.map(p=>p.name);state.coins=Math.min(state.coins,50000);state.gems=Math.min(state.gems,250)}
       }
     }
   }catch(e){}
@@ -1481,7 +1491,10 @@ function updateMomentum(){
 /* ---- Fitness cues. Stamina was tracked per player and drained all match,
    but the only sign of it was a single squad-average number. ---- */
 function staminaOf(name){const v=game.stamina?game.stamina[name]:100;return clamp(v==null?100:v,0,100)}
+/* Circles keep a white ring at full fitness so a fresh pitch looks normal,
+   but a white bar reads as empty rather than healthy, so bars go green. */
 function staminaColour(st){return st>75?"#ffffff":st>60?"#ffd84d":st>50?"#ff9f43":"#ff5d4d"}
+function fitnessBarColour(st){return st>75?"#25e879":st>60?"#ffd84d":st>50?"#ff9f43":"#ff5d4d"}
 function updateFitnessRings(){
   const xi=lineupPlayers();
   homeEls().forEach((el,i)=>{
@@ -1513,7 +1526,7 @@ function pauseMatch(){
    bench, so draining stamina had no answer. ---- */
 let subSelection={out:"",in:""};
 function staminaBar(pct){
-  return `<span class="stambar"><i style="width:${clamp(pct,4,100)}%;background:${staminaColour(pct)}"></i></span>`;
+  return `<span class="stambar"><i style="width:${clamp(pct,4,100)}%;background:${fitnessBarColour(pct)}"></i></span>`;
 }
 function openSubs(){
   if(game.minute>=90&&!game.active){toast("The match is over — no more changes.");return}
@@ -1820,7 +1833,7 @@ function closeTutorial(){skipTutorial()} // legacy button safety
 load();
 // Fresh install: ensure ~60 OVR starters
 if(!localStorage.getItem("FD_MASTER_V2")&&!localStorage.getItem("FD_MASTER")){
-  state.players=starterPlayers.map(p=>({...p}));
+  state.players=squadPlayers.map(p=>({...p}));
   state.lineup=starterPlayers.map(p=>p.name);
 }
 render();setupJoystick();setupTrainingSwipe();setupKeyboard();resetMatch();updateSoundButton();
