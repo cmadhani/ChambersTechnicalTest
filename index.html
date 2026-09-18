@@ -72,9 +72,12 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 .tl-row{display:flex;gap:8px;align-items:flex-start;background:#080d13;border:1px solid #1d2937;border-left-width:3px;border-radius:7px;padding:5px 8px}
 .tl-min{font-size:10px;font-weight:1000;color:#7f93a8;min-width:28px}
 .tl-txt{font-size:11px;color:#cfe0f0;line-height:1.35}
-.tl-row.goal{border-left-color:#25e879}.tl-row.goal .tl-min{color:#25e879}
-.tl-row.card{border-left-color:#e5c23c}.tl-row.red{border-left-color:#e5523c}
-.tl-row.sub{border-left-color:#2f6fd0}.tl-row.save{border-left-color:#9aa8b8}
+/* Event kinds are prefixed because the app already owns bare .goal (the
+   goalposts, position:absolute) and .card (player cards, min-height:285px).
+   An unprefixed class dragged that geometry into the timeline rows. */
+.tl-row.tl-goal{border-left-color:#25e879}.tl-row.tl-goal .tl-min{color:#25e879}
+.tl-row.tl-card{border-left-color:#e5c23c}.tl-row.tl-red{border-left-color:#e5523c}
+.tl-row.tl-sub{border-left-color:#2f6fd0}.tl-row.tl-save{border-left-color:#9aa8b8}
 .card-chip{display:inline-block;width:9px;height:12px;border-radius:2px;vertical-align:-2px;margin-right:4px}
 .card-chip.y{background:#e5c23c}.card-chip.r{background:#e5523c}
 .mplayer.sentoff{opacity:.25;filter:grayscale(1)}
@@ -1420,7 +1423,7 @@ function renderFullTimeReport(r){
     :"No substitutions made";
   const rt=document.getElementById("reportTimeline");
   if(rt)rt.innerHTML=(r.events||[]).length
-    ?r.events.slice().reverse().map(e=>`<div class="tl-row ${e.kind}"><span class="tl-min">${e.minute}'</span><span class="tl-txt">${EVENT_ICON[e.kind]||"•"} ${e.text}</span></div>`).join("")
+    ?r.events.slice().reverse().map(e=>`<div class="tl-row tl-${e.kind}"><span class="tl-min">${e.minute}'</span><span class="tl-txt">${EVENT_ICON[e.kind]||"•"} ${e.text}</span></div>`).join("")
     :'<div class="muted" style="font-size:11px">No notable events.</div>';
   document.getElementById("reportRatings").innerHTML=lineupPlayers().map(p=>`<div class="fixture-row"><span>${p.name}</span><b>${(r.ratings[p.name]||6.5).toFixed(1)}</b></div>`).join("");
   document.getElementById("reportMotm").innerHTML=r.motm?`<div class="eyebrow">MAN OF THE MATCH</div><h3>${r.motm.name}</h3><div class="muted">${r.motm.pos} · ${(r.ratings[r.motm.name]||7).toFixed(1)} rating</div>`:"—";
@@ -1464,7 +1467,7 @@ function logEvent(kind,text){
 function timelineMarkup(){
   if(!game.events||!game.events.length)return '<div class="muted" style="font-size:11px">No events yet.</div>';
   return game.events.slice().reverse().map(e=>
-    `<div class="tl-row ${e.kind}"><span class="tl-min">${e.minute}'</span><span class="tl-txt">${EVENT_ICON[e.kind]||"•"} ${e.text}</span></div>`).join("");
+    `<div class="tl-row tl-${e.kind}"><span class="tl-min">${e.minute}'</span><span class="tl-txt">${EVENT_ICON[e.kind]||"•"} ${e.text}</span></div>`).join("");
 }
 function renderTimeline(){
   const box=document.getElementById("matchTimeline");
