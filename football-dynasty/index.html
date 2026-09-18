@@ -53,6 +53,36 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #25e87988}50%{box-shadow:0 0 0 6px #25e87933}}
 .bench-list{display:grid;gap:6px}.bench-chip{display:flex;justify-content:space-between;padding:8px 10px;background:#101923;border:1px solid #293949;border-radius:10px;font-size:12px}
 #matchPlayers{position:absolute;inset:0;z-index:4}
+
+/* ===== Match experience: momentum meters, event timeline, cards, subs, keys ===== */
+.meter{display:flex;align-items:center;gap:8px;margin:7px 0}
+.meter>b{font-size:9px;letter-spacing:.08em;color:#8fa3b8;min-width:118px}
+.meter .track{flex:1;height:9px;border-radius:6px;background:#0c141d;border:1px solid #223041;overflow:hidden}
+.meter .fill{display:block;height:100%;width:0%;border-radius:6px;transition:width .3s linear}
+.meter .fill.home{background:linear-gradient(90deg,#1b6b42,#25e879)}
+.meter .fill.away{background:linear-gradient(90deg,#8a5a1c,#e5523c)}
+.meter .val{font-size:10px;font-weight:1000;color:#cfe0f0;min-width:34px;text-align:right}
+.timeline{max-height:176px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.tl-row{display:flex;gap:8px;align-items:flex-start;background:#080d13;border:1px solid #1d2937;border-left-width:3px;border-radius:7px;padding:5px 8px}
+.tl-min{font-size:10px;font-weight:1000;color:#7f93a8;min-width:28px}
+.tl-txt{font-size:11px;color:#cfe0f0;line-height:1.35}
+.tl-row.goal{border-left-color:#25e879}.tl-row.goal .tl-min{color:#25e879}
+.tl-row.card{border-left-color:#e5c23c}.tl-row.red{border-left-color:#e5523c}
+.tl-row.sub{border-left-color:#2f6fd0}.tl-row.save{border-left-color:#9aa8b8}
+.card-chip{display:inline-block;width:9px;height:12px;border-radius:2px;vertical-align:-2px;margin-right:4px}
+.card-chip.y{background:#e5c23c}.card-chip.r{background:#e5523c}
+.mplayer.sentoff{opacity:.25;filter:grayscale(1)}
+.subrow{display:flex;align-items:center;gap:9px;padding:8px;border:1px solid #1d2937;border-radius:9px;background:#080d13;margin-bottom:6px;cursor:pointer}
+.subrow.sel{border-color:#25e879;background:#0c1a12}
+.subrow .nm{flex:1;font-size:12px;font-weight:800}
+.subrow .pos{font-size:9px;font-weight:900;color:#8fa3b8;min-width:26px}
+.stambar{width:60px;height:6px;border-radius:4px;background:#16202b;overflow:hidden}
+.stambar i{display:block;height:100%;border-radius:4px}
+.keyhints{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.keyhints kbd{background:#0c141d;border:1px solid #2a3a4d;border-bottom-width:2px;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:800;color:#a8bccf;font-family:inherit}
+.btn.compact{width:auto;margin:0;padding:9px 12px;font-size:11px}
+.match-actions.secondary{display:flex;flex-wrap:wrap;margin-top:8px}
+.match-actions.secondary .btn.compact{flex:1 1 auto}
 </style>
 </head>
 <body>
@@ -104,7 +134,8 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 <section id="match" class="page">
   <h1>Match Day</h1>
   <div class="matchTop"><div><div class="eyebrow">DYNASTY PREMIER</div><b id="matchHomeName">Dynasty FC</b></div><div class="score"><span id="msHome">0</span> — <span id="msAway">0</span><div class="muted"><span id="matchMinute">0</span>' <span id="matchPhase">PRE-MATCH</span></div></div><div style="text-align:right"><div class="eyebrow">NEXT OPPONENT</div><b id="matchAwayName">Redbridge</b></div></div>
-  <div class="match-actions"><button class="btn primary" id="playMatchBtn" onclick="startMatch()">▶ PLAY MATCH</button><button class="btn" onclick="showPage('career')">⚙ MATCH PLAN</button></div>
+  <div class="match-actions"><button class="btn primary" id="playMatchBtn" onclick="togglePlayPause()" aria-keyshortcuts="Escape">▶ PLAY MATCH</button><button class="btn" onclick="showPage('career')">⚙ MATCH PLAN</button></div>
+  <div class="match-actions secondary"><button class="btn compact" id="subsBtn" onclick="openSubs()" aria-keyshortcuts="B">🔁 SUBS <span id="subsCount">0/3</span></button><button class="btn compact" id="soundBtn" onclick="toggleSound()" aria-label="Toggle match sound">🔊 SOUND ON</button></div>
   <div class="matchDifficulty">MATCH DIFFICULTY <select id="matchDifficulty" onchange="setDifficulty(this.value)"><option>Beginner</option><option>Amateur</option><option>Semi-Pro</option><option selected>Professional</option><option>World Class</option><option>Legendary</option></select></div>
   <div class="stadium">
     <div class="stands"></div><div class="lights">● ● ● ● ● ● ● ● ● ● ●</div>
@@ -119,8 +150,14 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
   </div>
   <div class="live-player" id="livePlayerHud">Controlled: —</div>
   <div class="action-status" id="actionStatus">ACTION: WAITING FOR KICK-OFF <span id="ballStatus">• BALL CENTRE</span></div>
-  <div class="commentary">🎙️ <b>Commentator:</b> <span id="commentary">Welcome to the match. Kick-off is moments away.</span></div>
+  <div class="commentary" aria-live="polite">🎙️ <b>Commentator:</b> <span id="commentary">Welcome to the match. Kick-off is moments away.</span></div>
+  <div class="panel">
+    <div class="row"><h3>Momentum</h3><span class="eyebrow">LIVE PRESSURE</span></div>
+    <div class="meter"><b>YOUR ATTACK</b><div class="track" role="progressbar" aria-label="Your attacking pressure" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="homeThreatTrack"><i class="fill home" id="homeThreatFill"></i></div><span class="val" id="homeThreatVal">0</span></div>
+    <div class="meter"><b>OPPOSITION THREAT</b><div class="track" role="progressbar" aria-label="Opposition threat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="awayThreatTrack"><i class="fill away" id="awayThreatFill"></i></div><span class="val" id="awayThreatVal">0</span></div>
+  </div>
   <div class="controls" id="matchControls"></div>
+  <div class="keyhints" id="keyHints"></div>
   <div class="panel"><div class="row"><h3>Live statistics</h3><span class="eyebrow">MATCH CENTRE</span></div>
     <div class="statline"><span id="homePoss">50%</span><b>POSSESSION</b><span id="awayPoss">50%</span></div>
     <div class="statline"><span id="homeShots">0</span><b>SHOTS</b><span id="awayShots">0</span></div>
@@ -132,12 +169,19 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
     <div class="statline"><span id="homeSaves">0</span><b>SAVES</b><span id="awaySaves">0</span></div>
     <div class="statline"><span id="homeStamina">100%</span><b>STARTING XI FITNESS</b><span>—</span></div>
   </div>
+  <div class="panel">
+    <div class="row"><h3>Match events</h3><span class="eyebrow" id="cardTally">NO CARDS</span></div>
+    <div class="timeline" id="matchTimeline" aria-live="polite" aria-label="Match event timeline"><div class="muted" style="font-size:11px">Kick-off pending — goals, cards, saves and substitutions appear here.</div></div>
+  </div>
   <div class="panel match-report" id="matchReport">
     <div class="eyebrow">FULL-TIME MATCH REPORT</div>
     <h2 id="reportResult">FULL TIME</h2>
     <div class="muted" id="reportOpponent">Match report</div>
     <div class="report-grid" id="reportStats"></div>
     <div style="margin-top:12px"><h3>Goalscorers</h3><div class="muted" id="reportGoals">—</div></div>
+    <div style="margin-top:12px"><h3>Disciplinary</h3><div class="muted" id="reportCards">—</div></div>
+    <div style="margin-top:12px"><h3>Substitutions</h3><div class="muted" id="reportSubs">—</div></div>
+    <div style="margin-top:12px"><h3>Match events</h3><div class="timeline" id="reportTimeline"></div></div>
     <div style="margin-top:12px"><h3>Player ratings</h3><div id="reportRatings"></div></div>
     <div class="motm" id="reportMotm"></div>
     <div class="panel" style="margin-top:10px"><h3>Rewards</h3><div class="muted" id="reportRewards"></div></div>
@@ -169,6 +213,14 @@ h1{font-size:30px;margin:4px 0 7px}h2{margin:0;font-size:21px}h3{margin:0 0 10px
 
 <div id="modal" class="modal"><div class="sheet"><div class="row"><h2>Choose Your Club</h2><button class="btn" style="width:auto;margin:0" onclick="closeModal()">✕</button></div><p class="muted">This is your Manager Career club. Your Football Dynasty players will be available to select into its squad.</p><div id="clubChoices"></div><button class="btn primary" onclick="startCareer()">CONFIRM CLUB & PLAY</button></div></div>
 <div id="squadModal" class="modal"><div class="sheet"><div class="row"><div><h2>Build your Starting XI</h2><div class="muted">Choose up to 11 cards. Your best available players are selected by default.</div></div><button class="btn" style="width:auto;margin:0" onclick="closeSquadPicker()">✕</button></div><div id="squadChoices"></div><button class="btn primary" onclick="saveSquadPicker()">SAVE STARTING XI</button></div></div>
+<div id="subsModal" class="modal"><div class="sheet">
+  <div class="row"><div><div class="eyebrow">SUBSTITUTIONS <span id="subsSheetCount">0/3</span></div><h2>Make a change</h2><div class="muted">Pick a tired player to come off, then a replacement from the bench.</div></div><button class="btn" style="width:auto;margin:0" onclick="closeSubs()" aria-label="Close substitutions">✕</button></div>
+  <div class="eyebrow" style="margin-top:10px">ON THE PITCH — TAP TO WITHDRAW</div>
+  <div id="subsOnPitch"></div>
+  <div class="eyebrow" style="margin-top:10px">BENCH — TAP TO BRING ON</div>
+  <div id="subsBench"></div>
+  <button class="btn primary" id="confirmSubBtn" onclick="confirmSub()">CONFIRM SUBSTITUTION</button>
+</div></div>
 <div id="toast" class="toast"></div>
 <div id="tutorialModal" class="modal"><div class="sheet">
   <div class="row"><div><div class="eyebrow">TUTORIAL</div><h2 id="tutTitle">Welcome</h2></div><button class="btn" style="width:auto;margin:0" onclick="skipTutorial()">SKIP</button></div>
@@ -230,7 +282,7 @@ const BALL_PULL=.025, SHAPE_PULL=.14, AWAY_SHAPE_PULL=.09, GK_SHAPE_PULL=.4;
 const SEP_X=5.5, SEP_Y=10;
 
 const emptyStats=()=>({possession:50,shots:0,awayShots:0,sot:0,awaySot:0,passes:0,awayPasses:0,passAttempts:0,awayPassAttempts:0,tackles:0,awayTackles:0,corners:0,awayCorners:0,saves:0,awaySaves:0,fouls:0,awayFouls:0});
-let game={minute:0,home:0,away:0,active:false,paused:false,controlled:9,ballOwner:9,possession:"home",tackled:false,setPiece:"",ballX:48,ballY:48,ballVX:0,ballVY:0,ballLoose:false,inFlight:false,awayAttack:0,awayCarrier:null,stats:emptyStats(),stamina:{},substituted:false,goalscorers:[],playerRatings:{},lastScorer:"",goalLock:false,sprint:false,halfShown:false};
+let game={minute:0,home:0,away:0,active:false,paused:false,controlled:9,ballOwner:9,possession:"home",tackled:false,setPiece:"",ballX:48,ballY:48,ballVX:0,ballVY:0,ballLoose:false,inFlight:false,awayAttack:0,awayCarrier:null,homeAttack:0,events:[],cards:[],subsUsed:0,sentOff:[],stats:emptyStats(),stamina:{},substituted:false,goalscorers:[],playerRatings:{},lastScorer:"",goalLock:false,sprint:false,halfShown:false};
 let matchLoopId=null,matchLoopLast=0,matchAcc={tick:0,motion:0,ball:0},pickerSelection=[];
 let matchEls={home:[],away:[]};
 let training={drill:"open",playerName:"",aim:"centre",goals:0,shots:0,active:false,power:.72,powerTimer:null,lastMessage:""};
@@ -532,11 +584,13 @@ function resetMatch(){
   let xi=lineupPlayers();
   // Prefer controlling a forward
   let controlled=xi.findIndex(p=>["ST","LW","RW","CAM"].includes(p.pos));if(controlled<0)controlled=Math.min(9,Math.max(0,xi.length-1));
-  game={minute:0,home:0,away:0,active:false,paused:false,controlled,ballOwner:controlled,possession:"home",tackled:false,setPiece:"",ballX:48,ballY:48,ballVX:0,ballVY:0,ballLoose:false,inFlight:false,awayAttack:0,awayCarrier:null,difficulty:state.matchDifficulty||"Professional",stats:emptyStats(),stamina:Object.fromEntries(xi.map(p=>[p.name,100])),substituted:false,goalscorers:[],playerRatings:Object.fromEntries(xi.map(p=>[p.name,6.5])),lastScorer:"",goalLock:false,sprint:false,halfShown:false,cards:[]};
+  game={minute:0,home:0,away:0,active:false,paused:false,controlled,ballOwner:controlled,possession:"home",tackled:false,setPiece:"",ballX:48,ballY:48,ballVX:0,ballVY:0,ballLoose:false,inFlight:false,awayAttack:0,awayCarrier:null,homeAttack:0,events:[],subsUsed:0,sentOff:[],difficulty:state.matchDifficulty||"Professional",stats:emptyStats(),stamina:Object.fromEntries(xi.map(p=>[p.name,100])),substituted:false,goalscorers:[],playerRatings:Object.fromEntries(xi.map(p=>[p.name,6.5])),lastScorer:"",goalLock:false,sprint:false,halfShown:false,cards:[]};
   document.getElementById("matchReport").classList.remove("show");
   placePlayersKickoff();
   setBallPosition(48,48);
   renderMatchControls();
+  renderTimeline();updateSubsButton();updateSoundButton();updateFitnessRings();renderKeyHints();
+  homeEls().concat(awayEls()).forEach(el=>el.classList.remove("sentoff"));
   updateMatch();
 }
 function placePlayersKickoff(){
@@ -595,9 +649,11 @@ function startMatch(){
   game.active=true;game.paused=false;
   document.getElementById("commentary").textContent=game.minute===0?"And we're underway from the centre circle!":"The second half is underway.";
   document.getElementById("matchPhase").textContent=game.minute<45?"LIVE":"SECOND HALF";
-  document.getElementById("playMatchBtn").textContent="⏸ MATCH LIVE";
+  document.getElementById("playMatchBtn").textContent="⏸ PAUSE MATCH";
   startMatchLoop();
   setActionStatus("kickoff","CENTRE");
+  if(game.minute===0&&!(game.events||[]).length)logEvent("whistle","Kick-off — "+state.club+" v "+currentOpponent());
+  sfx("whistle");updateSubsButton();updateSoundButton();updateFitnessRings();applySentOffMarks();renderKeyHints();
   updateMatch();highlightControlled();updateLivePlayerHud();
   if(tutorial.active&&tutorial.matchMode)setTutorialControlHint();
 }
@@ -615,6 +671,7 @@ function tickMatch(){
     game.awayAttack=Math.min(100,game.awayAttack+6+Math.random()*6*profile.aiMove);
     if(game.awayAttack>=70&&Math.random()<.26){aiAttemptShot()}
   }else game.awayAttack=Math.max(0,game.awayAttack-2);
+  updateHomeAttack();updateFitnessRings();
 
   // Random commentary
   if(Math.random()<.18){
@@ -624,6 +681,7 @@ function tickMatch(){
   updateMatch();
   if(game.minute===45&&!game.halfShown){
     game.halfShown=true;game.active=false;game.paused=true;stopMatchLoop();
+    logEvent("whistle","Half time — "+state.club+" "+game.home+"–"+game.away+" "+currentOpponent());sfx("whistle");
     document.getElementById("matchPhase").textContent="HALF TIME";
     document.getElementById("commentary").textContent="The referee blows for half-time.";
     document.getElementById("playMatchBtn").textContent="▶ RESUME SECOND HALF";
@@ -653,7 +711,7 @@ function aiAttemptShot(){
       if(onTarget){
         game.stats.awaySot++;
         const saved=Math.random()<profile.save*(.7+saveSkill);
-        if(saved){game.stats.saves++;sayComment("What a save!");setActionStatus("opponent","SAVED");resetAfterMiss("home")}
+        if(saved){game.stats.saves++;sayComment("What a save!");setActionStatus("opponent","SAVED");logEvent("save",(gk?.name||"Your keeper")+" saves from "+currentOpponent());sfx("save");resetAfterMiss("home")}
         else{// force goal via register
           forceGoalFromShot("away",oppositionTemplates[9][0]);
         }
@@ -680,6 +738,7 @@ function updateMatch(){
   document.getElementById("homeSaves").textContent=game.stats.saves;document.getElementById("awaySaves").textContent=game.stats.awaySaves;
   let xi=lineupPlayers(),fitness=xi.length?Math.round(xi.reduce((a,p)=>a+(game.stamina[p.name]||100),0)/xi.length):0;
   document.getElementById("homeStamina").textContent=fitness+"%";
+  updateMomentum();updateCardTally();updateSubsButton();
 }
 
 function setActionStatus(action,ballState){
@@ -755,6 +814,8 @@ function registerGoal(side,scorerName){
     sayComment("GOAL! "+scorer+" finds the net!");
     toast("GOAL! "+scorer);
     setActionStatus("shoot","GOAL!");
+    logEvent("goal",scorer+" scores for "+state.club+" — "+game.home+"–"+game.away);
+    game.homeAttack=0;sfx("goal");
   }else{
     game.away=Math.min(99,game.away+1);
     state.career.ga=(state.career.ga||0)+1;
@@ -765,6 +826,8 @@ function registerGoal(side,scorerName){
     showGoalBanner(scorer);
     sayComment("GOAL! "+scorer+" for "+currentOpponent()+"!");
     toast("Opposition goal — "+scorer);
+    logEvent("goal",scorer+" scores for "+currentOpponent()+" — "+game.home+"–"+game.away);
+    game.awayAttack=0;sfx("goal");
   }
   updateMatch();
   // Never leave ball stuck — reset after celebration
@@ -936,6 +999,8 @@ function maybeOpponentChallenge(){
       game.possession="home";game.tackled=false;game.ballOwner=game.controlled;
       renderMatchControls();setActionStatus(game.setPiece,"SET PIECE");
       sayComment(game.setPiece==="penalty"?"FOUL: PENALTY AWARDED!":"FOUL: FREE KICK AWARDED.");
+      // A penalty is a clear scoring chance, so it is booked far more often.
+      if(Math.random()<(game.setPiece==="penalty"?.8:.38))bookPlayer("away",availableAwayName(),game.setPiece==="penalty"?"foul in the box":"cynical challenge");
       return true;
     }
     game.stats.awayTackles++;
@@ -964,6 +1029,7 @@ function resolveDefensiveAction(a){
   if(Math.random()<profile.foul*.8){
     game.stats.fouls++;
     sayComment("Foul given — free kick to "+currentOpponent()+".");
+    if(Math.random()<.38)bookPlayer("home",controlledPlayer()?.name,a==="slide"?"reckless slide tackle":"late challenge");
     resolveOpponentSetPiece("freekick",true);return;
   }
   game.stats.tackles++;
@@ -1084,6 +1150,7 @@ function playAction(a){
   }
   if(!game.active){if(game.minute===45||game.minute===0)startMatch();else{toast("Press PLAY MATCH to begin.");return}}
   if(game.goalLock)return;
+  if(["pass","through","shoot","cross","freekick","penalty"].includes(a))sfx("kick");
   if(game.setPiece){
     if(a==="freekick"||a==="penalty"){resolveSetPiece(a);advanceTutorialControl(a);return}
     if(a==="cross"&&(game.setPiece==="corner"||game.setPiece==="freekick")){resolveCross();advanceTutorialControl(a);return}
@@ -1146,6 +1213,7 @@ function moveFieldPlayers(){
   const spots=homeFormationSpots();
   const awaySpots=AWAY_SPOTS["4-3-3"];
   homeEls().forEach((p,i)=>{
+    if(p.classList.contains("sentoff"))return;
     if(i===game.controlled){p.classList.add("controlled");return}
     const player=xi[i];
     const anchor=spots[i]||[50,50];
@@ -1162,6 +1230,7 @@ function moveFieldPlayers(){
     p.classList.toggle("controlled",i===game.controlled);
   });
   awayEls().forEach((p,i)=>{
+    if(p.classList.contains("sentoff"))return;
     const ovr=(oppositionTemplates[i]?.[2]||70)/100;
     const move=profile.aiMove*(.8+ovr*.4);
     const anchor=awaySpots[i]||[75,50];
@@ -1225,12 +1294,18 @@ function stickBallToCarrier(){
 function highlightControlled(){homeEls().forEach((p,i)=>p.classList.toggle("controlled",i===game.controlled));updateLivePlayerHud()}
 function switchPlayer(){
   const home=homeEls();
+  const playable=i=>home[i]&&!home[i].classList.contains("sentoff");
   if(game.possession==="away"){
     // Switch to nearest to ball
     let best=0,bestD=1e9;
-    home.forEach((el,i)=>{const pos=elementPosition(el);const d=Math.hypot(pos.x-game.ballX,pos.y-game.ballY);if(d<bestD){bestD=d;best=i}});
+    home.forEach((el,i)=>{if(!playable(i))return;const pos=elementPosition(el);const d=Math.hypot(pos.x-game.ballX,pos.y-game.ballY);if(d<bestD){bestD=d;best=i}});
     game.controlled=best;
-  }else game.controlled=(game.controlled+1)%Math.max(1,home.length);
+  }else{
+    // Step past anyone who has been sent off rather than handing over a ghost.
+    let next=game.controlled,tries=0;
+    do{next=(next+1)%Math.max(1,home.length);tries++}while(!playable(next)&&tries<=home.length);
+    game.controlled=next;
+  }
   highlightControlled();setActionStatus("switch","CONTROLLED PLAYER");
   sayComment("SWITCH: Now controlling "+(lineupPlayers()[game.controlled]?.name||"your player")+".");
 }
@@ -1281,6 +1356,12 @@ function finishMatch(forfeit=false){
   document.getElementById("matchPhase").textContent="FULL TIME";
   document.getElementById("playMatchBtn").textContent="▶ PLAY NEXT MATCH";
   if(!forfeit)sayComment(`The referee blows for full-time. ${state.club} ${game.home}–${game.away} ${opponent}.`);
+  logEvent("whistle",(forfeit?"Match forfeited — ":"Full time — ")+state.club+" "+game.home+"–"+game.away+" "+opponent);
+  sfx("whistle");
+  // A yellow card costs a player a little match rating.
+  (game.cards||[]).filter(c=>c.side==="home").forEach(c=>{
+    if(game.playerRatings[c.name]!=null)game.playerRatings[c.name]=Math.max(5.5,+(game.playerRatings[c.name]-(c.type==="red"?1.2:0.4)).toFixed(1));
+  });
   // Ratings
   const xi=lineupPlayers();
   xi.forEach(p=>{
@@ -1292,7 +1373,7 @@ function finishMatch(forfeit=false){
   const motm=xi.slice().sort((a,b)=>(game.playerRatings[b.name]||0)-(game.playerRatings[a.name]||0))[0];
   let rewardPack=null;
   if(packChance){rewardPack=randomFromPool(70,78);state.players.push(rewardPack)}
-  lastMatchReport={home:game.home,away:game.away,opponent,stats:{...game.stats},goalscorers:[...game.goalscorers],ratings:{...game.playerRatings},motm,coins,xp,rewardPack};
+  lastMatchReport={home:game.home,away:game.away,opponent,stats:{...game.stats},goalscorers:[...game.goalscorers],ratings:{...game.playerRatings},motm,coins,xp,rewardPack,cards:[...(game.cards||[])],events:[...(game.events||[])],subsUsed:game.subsUsed||0};
   renderFullTimeReport(lastMatchReport);
   save();render();
   if(tutorial.active){setTimeout(()=>tutorialNext(),600)}
@@ -1314,6 +1395,17 @@ function renderFullTimeReport(r){
     <div class="report-stat"><small>SAVES</small><b>${r.stats.saves} – ${r.stats.awaySaves}</b></div>
     <div class="report-stat"><small>FOULS</small><b>${r.stats.fouls} – ${r.stats.awayFouls}</b></div>`;
   document.getElementById("reportGoals").innerHTML=r.goalscorers.length?r.goalscorers.map(g=>`${g.name} ${g.minute}'${g.side==="away"?" (A)":""}`).join("<br>"):"No goals";
+  const cards=r.cards||[];
+  document.getElementById("reportCards").innerHTML=cards.length
+    ?cards.map(c=>`<span class="card-chip ${c.type==="red"?"r":"y"}"></span>${c.name} ${c.minute}'${c.side==="away"?" (A)":""} — ${c.reason}`).join("<br>")
+    :"A clean game — no cards shown";
+  document.getElementById("reportSubs").textContent=(r.subsUsed||0)
+    ?`${r.subsUsed} of ${MAX_SUBS} substitutions used`
+    :"No substitutions made";
+  const rt=document.getElementById("reportTimeline");
+  if(rt)rt.innerHTML=(r.events||[]).length
+    ?r.events.slice().reverse().map(e=>`<div class="tl-row ${e.kind}"><span class="tl-min">${e.minute}'</span><span class="tl-txt">${EVENT_ICON[e.kind]||"•"} ${e.text}</span></div>`).join("")
+    :'<div class="muted" style="font-size:11px">No notable events.</div>';
   document.getElementById("reportRatings").innerHTML=lineupPlayers().map(p=>`<div class="fixture-row"><span>${p.name}</span><b>${(r.ratings[p.name]||6.5).toFixed(1)}</b></div>`).join("");
   document.getElementById("reportMotm").innerHTML=r.motm?`<div class="eyebrow">MAN OF THE MATCH</div><h3>${r.motm.name}</h3><div class="muted">${r.motm.pos} · ${(r.ratings[r.motm.name]||7).toFixed(1)} rating</div>`:"—";
   document.getElementById("reportRewards").innerHTML=`Coins +${r.coins.toLocaleString()} · XP +${r.xp}${r.rewardPack?` · Bonus player: ${r.rewardPack.name} (${r.rewardPack.ovr} OVR)`:""}<br><span class="muted">Use rewards to open packs and improve the squad.</span>`;
@@ -1335,6 +1427,292 @@ function renderMarket(){
 }
 function searchMarket(){renderMarket();toast("Market refreshed.")}
 function buy(name,pos,ovr,price){if(state.players.some(p=>p.name===name)){toast("Player already signed.");return}if(state.coins<price){toast("You need "+(price-state.coins).toLocaleString()+" more coins.");return}state.coins-=price;state.players.push(makePlayer(name,pos,ovr,Math.floor(Math.random()*20)+10));state.career.xp+=30;save();render();toast("Signed "+name+"!")}
+
+/* ========== MATCH EXPERIENCE ==========
+   Pause/resume, substitutions, bookings, an event timeline, momentum meters,
+   fitness cues on the pitch, keyboard control and sound. These sit alongside
+   the existing engine and hook into it, rather than replacing any of it. */
+
+const MAX_SUBS=3;
+const EVENT_ICON={goal:"⚽",card:"🟨",red:"🟥",sub:"🔁",save:"🧤",whistle:"📢",chance:"🎯"};
+
+function escAttr(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;")}
+
+/* ---- Event timeline. Commentary only ever showed the newest line, so the
+   story of the match was lost the moment anything else happened. ---- */
+function logEvent(kind,text){
+  if(!game.events)game.events=[];
+  game.events.push({minute:Math.max(0,game.minute),kind,text});
+  renderTimeline();
+}
+function timelineMarkup(){
+  if(!game.events||!game.events.length)return '<div class="muted" style="font-size:11px">No events yet.</div>';
+  return game.events.slice().reverse().map(e=>
+    `<div class="tl-row ${e.kind}"><span class="tl-min">${e.minute}'</span><span class="tl-txt">${EVENT_ICON[e.kind]||"•"} ${e.text}</span></div>`).join("");
+}
+function renderTimeline(){
+  const box=document.getElementById("matchTimeline");
+  if(box)box.innerHTML=timelineMarkup();
+}
+
+/* ---- Momentum. game.awayAttack already climbed 0-100 internally to decide
+   when the AI shoots, but it was never shown; homeAttack mirrors it so both
+   sides of the pressure are readable. ---- */
+function updateHomeAttack(){
+  if(game.possession==="home"&&!game.inFlight){
+    const advance=clamp((game.ballX-20)/70,0,1);
+    game.homeAttack=Math.min(100,(game.homeAttack||0)+2+advance*7);
+  }else game.homeAttack=Math.max(0,(game.homeAttack||0)-4);
+}
+function updateMomentum(){
+  const set=(base,v)=>{
+    const fill=document.getElementById(base+"Fill"),val=document.getElementById(base+"Val"),track=document.getElementById(base+"Track");
+    if(!fill)return;
+    const pct=Math.round(clamp(v||0,0,100));
+    fill.style.width=pct+"%";
+    if(val)val.textContent=pct;
+    if(track)track.setAttribute("aria-valuenow",pct);
+  };
+  set("homeThreat",game.homeAttack);
+  set("awayThreat",game.awayAttack);
+}
+
+/* ---- Fitness cues. Stamina was tracked per player and drained all match,
+   but the only sign of it was a single squad-average number. ---- */
+function staminaOf(name){const v=game.stamina?game.stamina[name]:100;return clamp(v==null?100:v,0,100)}
+function staminaColour(st){return st>75?"#ffffff":st>60?"#ffd84d":st>50?"#ff9f43":"#ff5d4d"}
+function updateFitnessRings(){
+  const xi=lineupPlayers();
+  homeEls().forEach((el,i)=>{
+    const p=xi[i];if(!p)return;
+    const st=staminaOf(p.name);
+    el.style.borderColor=staminaColour(st);
+    el.title=`${p.name} — ${p.pos} ${p.ovr} OVR — ${Math.round(st)}% fitness`;
+  });
+}
+
+/* ---- Pause / resume. The button already read "MATCH LIVE" with a pause
+   icon, but its handler only ever started the match, so a live game could
+   not be stopped. ---- */
+function togglePlayPause(){
+  if(game.active){pauseMatch();return}
+  startMatch();
+}
+function pauseMatch(){
+  if(!game.active)return;
+  game.active=false;game.paused=true;stopMatchLoop();
+  document.getElementById("playMatchBtn").textContent="▶ RESUME MATCH";
+  document.getElementById("matchPhase").textContent="PAUSED";
+  sayComment("Match paused — take your time.");
+  sfx("whistle");
+}
+
+/* ---- Substitutions. resetMatch already tracked a substituted flag and
+   setActionStatus already had a "sub" label, but there was no way to use the
+   bench, so draining stamina had no answer. ---- */
+let subSelection={out:"",in:""};
+function staminaBar(pct){
+  return `<span class="stambar"><i style="width:${clamp(pct,4,100)}%;background:${staminaColour(pct)}"></i></span>`;
+}
+function openSubs(){
+  if(game.minute>=90&&!game.active){toast("The match is over — no more changes.");return}
+  if((game.subsUsed||0)>=MAX_SUBS){toast("All "+MAX_SUBS+" substitutions used.");return}
+  subSelection={out:"",in:""};
+  renderSubsSheet();
+  document.getElementById("subsModal").classList.add("show");
+}
+function closeSubs(){document.getElementById("subsModal").classList.remove("show")}
+function isSentOff(name){return (game.sentOff||[]).some(o=>o.side==="home"&&o.name===name)}
+function renderSubsSheet(){
+  const onBox=document.getElementById("subsOnPitch"),benchBox=document.getElementById("subsBench");
+  if(!onBox||!benchBox)return;
+  document.getElementById("subsSheetCount").textContent=(game.subsUsed||0)+"/"+MAX_SUBS;
+  onBox.innerHTML=lineupPlayers().map(p=>{
+    const st=Math.round(staminaOf(p.name));
+    return `<div class="subrow${subSelection.out===p.name?" sel":""}" onclick="pickSubOut('${escAttr(p.name)}')"><span class="pos">${p.pos}</span><span class="nm">${p.name}${isSentOff(p.name)?" · SENT OFF":""}</span><span class="muted" style="font-size:10px">${st}%</span>${staminaBar(st)}</div>`;
+  }).join("")||'<div class="muted" style="font-size:11px">Nobody on the pitch.</div>';
+  benchBox.innerHTML=benchPlayers().map(p=>
+    `<div class="subrow${subSelection.in===p.name?" sel":""}" onclick="pickSubIn('${escAttr(p.name)}')"><span class="pos">${p.pos}</span><span class="nm">${p.name}</span><span class="muted" style="font-size:10px">${p.ovr} OVR</span></div>`
+  ).join("")||'<div class="muted" style="font-size:11px">Your bench is empty — sign players or open packs for depth.</div>';
+}
+function pickSubOut(name){subSelection.out=name;renderSubsSheet()}
+function pickSubIn(name){subSelection.in=name;renderSubsSheet()}
+function confirmSub(){
+  if((game.subsUsed||0)>=MAX_SUBS){toast("All "+MAX_SUBS+" substitutions used.");return}
+  if(!subSelection.out||!subSelection.in){toast("Pick one player off and one on.");return}
+  if(isSentOff(subSelection.out)){toast("A sent-off player cannot be replaced.");return}
+  const idx=state.lineup.indexOf(subSelection.out);
+  if(idx<0){toast("That player is not on the pitch.");return}
+  /* Changing the lineup changes the squad signature, so renderMatchPlayers
+     rebuilds every circle from the kick-off spots. Remember where everyone is
+     standing and put them back, so only the substitute actually moves. */
+  const before={};
+  lineupPlayers().forEach((p,i)=>{const el=homeEls()[i];if(el)before[p.name]=elementPosition(el)});
+  const awayBefore=awayEls().map(el=>elementPosition(el));
+  const vacated=before[subSelection.out]||null;
+  state.lineup[idx]=subSelection.in;
+  game.stamina[subSelection.in]=100;
+  if(game.playerRatings[subSelection.in]==null)game.playerRatings[subSelection.in]=6.5;
+  game.subsUsed=(game.subsUsed||0)+1;
+  game.substituted=true;
+  save();
+  renderMatchPlayers();
+  lineupPlayers().forEach((p,i)=>{
+    const el=homeEls()[i];if(!el)return;
+    const at=before[p.name]||(p.name===subSelection.in?vacated:null);
+    if(at){el.style.left=at.x+"%";el.style.top=at.y+"%"}
+  });
+  awayEls().forEach((el,i)=>{const at=awayBefore[i];if(at){el.style.left=at.x+"%";el.style.top=at.y+"%"}});
+  applySentOffMarks();highlightControlled();updateFitnessRings();
+  setActionStatus("sub","PLAYER CHANGE");
+  sayComment("SUBSTITUTION: "+subSelection.in+" replaces "+subSelection.out+".");
+  logEvent("sub",subSelection.in+" on for "+subSelection.out);
+  sfx("sub");updateSubsButton();closeSubs();
+  toast("Sub made — "+(MAX_SUBS-game.subsUsed)+" remaining.");
+}
+function updateSubsButton(){
+  const c=document.getElementById("subsCount");
+  if(c)c.textContent=(game.subsUsed||0)+"/"+MAX_SUBS;
+}
+
+/* ---- Bookings. resetMatch initialised a cards array that nothing ever
+   wrote to, so fouls carried no consequence. ---- */
+function bookPlayer(side,name,reason){
+  if(!name)return;
+  if(!game.cards)game.cards=[];
+  const second=game.cards.filter(c=>c.name===name&&c.type==="yellow").length>=1;
+  game.cards.push({side,name,type:second?"red":"yellow",minute:Math.max(1,game.minute),reason});
+  if(second){
+    sendOff(side,name);
+    sayComment("RED CARD! "+name+" is off for a second bookable offence.");
+    logEvent("red",'<span class="card-chip r"></span>'+name+" sent off — "+reason);
+    toast("🟥 RED CARD: "+name);
+  }else{
+    sayComment("Yellow card for "+name+" — "+reason+".");
+    logEvent("card",'<span class="card-chip y"></span>'+name+" booked — "+reason);
+    toast("🟨 Booked: "+name);
+  }
+  sfx("card");updateCardTally();
+}
+function updateCardTally(){
+  const el=document.getElementById("cardTally");if(!el)return;
+  const cards=game.cards||[];
+  if(!cards.length){el.textContent="NO CARDS";return}
+  const y=cards.filter(c=>c.type==="yellow").length,r=cards.filter(c=>c.type==="red").length;
+  el.innerHTML=`<span class="card-chip y"></span>${y}<span class="card-chip r" style="margin-left:8px"></span>${r}`;
+}
+function sendOff(side,name){
+  if(!game.sentOff)game.sentOff=[];
+  const index=side==="home"?lineupPlayers().findIndex(p=>p.name===name):oppositionTemplates.findIndex(t=>t[0]===name);
+  if(!game.sentOff.some(o=>o.side===side&&o.name===name))game.sentOff.push({side,name,index});
+  applySentOffMarks();
+  if(side==="home"&&game.controlled===index)switchPlayer();
+}
+function applySentOffMarks(){
+  (game.sentOff||[]).forEach(o=>{
+    const i=o.side==="home"?lineupPlayers().findIndex(p=>p.name===o.name):o.index;
+    const el=o.side==="home"?homeEls()[i]:awayEls()[i];
+    if(el)el.classList.add("sentoff");
+  });
+}
+function availableAwayName(){
+  const pool=oppositionTemplates.filter(t=>!(game.sentOff||[]).some(o=>o.side==="away"&&o.name===t[0]));
+  const outfield=pool.slice(1);
+  return (outfield.length?randomPick(outfield):pool[0]||[])[0]||"";
+}
+
+/* ---- Sound. Built from oscillators so it needs no audio files. ---- */
+let audioCtx=null;
+const SFX={
+  kick:{type:"square",gain:.05,notes:[[200,.05]]},
+  goal:{type:"triangle",gain:.09,notes:[[523,.12],[659,.12],[784,.24]]},
+  whistle:{type:"sine",gain:.045,notes:[[1850,.1],[2150,.14]]},
+  card:{type:"sawtooth",gain:.045,notes:[[165,.18]]},
+  sub:{type:"sine",gain:.055,notes:[[440,.09],[587,.11]]},
+  save:{type:"triangle",gain:.055,notes:[[330,.11]]}
+};
+function initAudio(){
+  if(audioCtx)return audioCtx;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)return null;
+  try{audioCtx=new AC()}catch(e){audioCtx=null}
+  return audioCtx;
+}
+function sfx(kind){
+  if(state.sound===false)return;
+  const spec=SFX[kind];if(!spec)return;
+  const ctx=initAudio();if(!ctx)return;
+  if(ctx.state==="suspended")ctx.resume();
+  let t=ctx.currentTime;
+  spec.notes.forEach(([freq,dur])=>{
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type=spec.type;osc.frequency.value=freq;
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.linearRampToValueAtTime(spec.gain,t+.012);
+    gain.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);osc.stop(t+dur+.02);
+    t+=dur;
+  });
+}
+function toggleSound(){
+  state.sound=state.sound===false;
+  save();updateSoundButton();
+  if(state.sound){initAudio();sfx("sub");toast("Match sound on.")}
+  else toast("Match sound muted.");
+}
+function updateSoundButton(){
+  const b=document.getElementById("soundBtn");if(!b)return;
+  const on=state.sound!==false;
+  b.textContent=on?"🔊 SOUND ON":"🔇 MUTED";
+  b.setAttribute("aria-pressed",String(on));
+}
+
+/* ---- Keyboard control. The pitch could only be driven by dragging the
+   on-screen joystick with a pointer, which is awkward on a desktop. ---- */
+const MOVE_KEYS={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],KeyW:[0,-1],KeyS:[0,1],KeyA:[-1,0],KeyD:[1,0]};
+const ACTION_KEYS={KeyE:"pass",KeyQ:"through",KeyR:"cross",KeyF:"skill",ShiftLeft:"sprint",ShiftRight:"sprint",KeyX:"switch",KeyC:"press"};
+const KEY_HINTS=[["WASD / ←↑↓→","MOVE"],["SPACE","SHOOT / TACKLE"],["E","PASS"],["Q","THROUGH"],["R","CROSS"],["F","SKILL"],["SHIFT","SPRINT"],["X","SWITCH"],["C","PRESS"],["B","SUBS"],["ESC","PAUSE"]];
+let keysDown=new Set(),keyMoveTimer=null;
+function matchPageActive(){return !!document.getElementById("match")?.classList.contains("active")}
+function typingInField(t){return !!t&&/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName||"")}
+function keyAction(code){
+  if(code==="Space")return game.possession==="away"?"tackle":"shoot";
+  return ACTION_KEYS[code]||"";
+}
+function startKeyMove(){
+  if(keyMoveTimer!==null)return;
+  keyMoveTimer=setInterval(()=>{
+    if(!game.active||!keysDown.size)return;
+    let dx=0,dy=0;
+    keysDown.forEach(c=>{const v=MOVE_KEYS[c];if(v){dx+=v[0];dy+=v[1]}});
+    const len=Math.hypot(dx,dy);
+    if(len)moveControlled(dx/len,dy/len);
+  },50);
+}
+function stopKeyMove(){if(keyMoveTimer!==null){clearInterval(keyMoveTimer);keyMoveTimer=null}}
+function setupKeyboard(){
+  window.addEventListener("keydown",e=>{
+    if(typingInField(e.target)||!matchPageActive())return;
+    if(e.code==="Escape"){e.preventDefault();togglePlayPause();return}
+    if(e.code==="KeyB"){if(!e.repeat){e.preventDefault();openSubs()}return}
+    if(MOVE_KEYS[e.code]){e.preventDefault();keysDown.add(e.code);startKeyMove();return}
+    if(!game.active||e.repeat)return;
+    const action=keyAction(e.code);
+    if(action){e.preventDefault();playAction(action)}
+  });
+  window.addEventListener("keyup",e=>{
+    if(MOVE_KEYS[e.code]){keysDown.delete(e.code);if(!keysDown.size)stopKeyMove()}
+    if(e.code==="ShiftLeft"||e.code==="ShiftRight")game.sprint=false;
+  });
+  window.addEventListener("blur",()=>{keysDown.clear();stopKeyMove()});
+  renderKeyHints();
+}
+function renderKeyHints(){
+  const box=document.getElementById("keyHints");if(!box)return;
+  box.innerHTML=KEY_HINTS.map(([k,l])=>
+    `<span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;color:#7f93a8;font-weight:800"><kbd>${k}</kbd>${l}</span>`).join("");
+}
 
 /* ========== TUTORIAL ========== */
 const TUTORIAL_STEPS=[
@@ -1444,7 +1822,7 @@ if(!localStorage.getItem("FD_MASTER_V2")&&!localStorage.getItem("FD_MASTER")){
   state.players=starterPlayers.map(p=>({...p}));
   state.lineup=starterPlayers.map(p=>p.name);
 }
-render();setupJoystick();setupTrainingSwipe();resetMatch();
+render();setupJoystick();setupTrainingSwipe();setupKeyboard();resetMatch();updateSoundButton();
 
 // First open tutorial
 if(!state.tutorialSeen){setTimeout(()=>startTutorial(false),400)}
@@ -1458,6 +1836,8 @@ window.selectTrainingPlayer=selectTrainingPlayer;window.startTraining=startTrain
 window.beginTrainingShot=beginTrainingShot;window.trainingShoot=trainingShoot;window.cancelTrainingShot=cancelTrainingShot;
 window.searchMarket=searchMarket;window.buy=buy;window.startTutorial=startTutorial;window.skipTutorial=skipTutorial;window.tutorialNext=tutorialNext;
 window.showCareerTab=showCareerTab;window.toast=toast;window.closeTutorial=closeTutorial;
+window.togglePlayPause=togglePlayPause;window.pauseMatch=pauseMatch;window.toggleSound=toggleSound;
+window.openSubs=openSubs;window.closeSubs=closeSubs;window.pickSubOut=pickSubOut;window.pickSubIn=pickSubIn;window.confirmSub=confirmSub;
 </script>
 </body>
 </html>
